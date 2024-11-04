@@ -1,24 +1,28 @@
 # ECommerce-Microservices
-Microservices Architechture based Ecommerce APIs
+## Microservices Architechture based Ecommerce APIs
 
-Plan: Post Payment Order Creation
+### Plan: Post Payment Order Creation
 
-Need : Microservice for Order Management of Customers & Admin(Role not created yet).
+#### Need : Microservice for Order Management of Customers & Admin(Role not created yet).
 
-Description : 
+#### Description : 
 
-1. Order table to hold multiple orders of a customer, Customer : Order (@OneToMany)
+####
+* Order table to hold multiple orders of a customer, Customer : Order (@OneToMany)
 
-2. Order table should have coloumns of :
-   2.1. Payment Status : Fetch from Payment_Order.order_status table
-   2.2. Wishlist items : Customer.Cart
-   2.3. Delivery Address: Customer.Cart.DeliveryAddress
-   2.4. Contact Details: Customer
+* Order table should have coloumns of :
+   * Payment Status : Fetch from Payment_Order.order_status table
+   * Wishlist items : Customer.Cart
+   * Delivery Address: Customer.Cart.DeliveryAddress
+   * Contact Details: Customer
+   * Order Statuses : []
+   * Payment Informations : []
 
-3. Endpoints:
-   3.1. [POST] - /create-order :
-        - trigger after Payment Confirmation Redirect to success page
-        - take payment_order's - id, status, contact details; cart's item name, quantity & price
-        - map it with customer table
-   3.2 [GET] - /order-status - List<Order>
-   3.3 [Delete] - /cancel-order/{order_id}
+* Endpoints:
+   * [POST] -/create-order :
+     * trigger after Payment Confirmation Redirect to success page
+     * take payment_order's - id, status, contact details; cart's item name, quantity & price; orderstatus enum's status, payment_order's required columns
+     * map it with customer table
+   * [GET] - /order-status - List<Order>
+   * [Delete] - /cancel-order/{order_id}
+####
