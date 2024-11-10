@@ -1,0 +1,61 @@
+ECommerce-Microservices Plan:
+
+   Order Processing : 
+
+   Now this is major point of development. Need a centralized order-management via order table : [Customer : READ, ADMIN - READ/WRITE, DELIVERY - READ/WRITE]
+
+   the story should be following manner:
+
+   1. Once the payment is confimed, and just before redirection to home page, the table should be created with given fields(subjected to change)
+
+   2. This table should contains the cart info & payment-order required details [Customer side order table interaction 1]
+
+   3. Admin will come in to the picture now, As this order is going to be managed by admin from now on, so order table should have read-write access to admin.
+
+   4. Order processing sequence 1 : A notification should be sent to admin for, Approving the order. If admin approves it, order-status : Order-Approved
+
+   5. Order processing sequence 2 : Once the order is approved, customer should /get the receipt: cart, payment, order-status. 
+                                    Also email & notification with order_id & expected-delivery-date
+                                    order-status : Bill Generated
+
+   6. Order processing sequence 3 : Admin will send this order to seller's location delivery-partner now. (order table with read-write access by delivery & admin)
+                                    order-status : Delivery Assgined
+
+   7. Order processing sequence 4 : Delivery will ask Seller to make the items ready for pickup
+                                    order-status : Picked Up
+
+   8. Order processing sequence 5 : Delivery will stack the item in self.
+                                    order-status : At Delivery Hub : [Pincode]
+  
+   9. Order processing sequence 6 : Delivery will send the item to customer's location hub.
+                                    order-status : In Transit
+   
+   10. Order processing sequence 7 : Delivery will collect the order and stack in self.
+                                     order-status : At Delivery Hub : [Pincode]
+  
+   11. Order processing sequence 8 : Delivery will assign a delivery boy for order delivery with given time.
+                                     order-status : Out for Delivery
+
+   12. Order processing sequence 9 : Customer will share an OTP with delivery boy, receive the package.
+                                     order-status : Completed
+   
+   id
+   customer-name
+   customer-email
+   customer-phone
+   delivery-address
+   payment-amount
+   payment-status
+   payment-id
+   order-status : [
+    Payment Confirmed,(customer) 
+    Order Confirmed(Admin), 
+    Order sent to seller for pickup(admin, delivery), 
+    Seller gave the items(seller, delivery), 
+    order stacked in seller's location hub,(delivery)
+    order shipped to customer's location,(delivery)
+    order out for delivery,(delivery)
+    order delivered,(delivery, customer)
+   ]
+   expected-delivery-date
+   
