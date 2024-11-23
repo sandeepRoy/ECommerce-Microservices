@@ -3,24 +3,30 @@ package com.msa.payment.services;
 import com.msa.payment.dtos.PaymentOrderRequest;
 import com.msa.payment.entities.PaymentOrder;
 import com.msa.payment.repositories.PaymentOrderRepository;
-import com.msa.payment.response.OrderResponse;
 import com.razorpay.*;
+import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Example;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import java.util.Map;
 import java.util.logging.Logger;
 
 @Service
+@RequiredArgsConstructor
 public class PaymentService {
 
     public static final Logger logger = Logger.getLogger(PaymentService.class.getName());
 
+    private final KafkaTemplate<String, PaymentOrder> paymentOrderTemplate;
+
     @Autowired
     public PaymentOrderRepository paymentOrderRepository;
-
 
     @Value("${razorpay.key.id}")
     private String razorpay_key;
@@ -71,6 +77,17 @@ public class PaymentService {
         found_paymentOrder.setOrder_status("PAYMENT_COMPLETED");
         PaymentOrder paymentOrder_statusUpdated = paymentOrderRepository.save(found_paymentOrder);
 
+        publishPaymentOrder(paymentOrder_statusUpdated);
+
         return paymentOrder_statusUpdated;
+    }
+
+    private void publishPaymentOrder(PaymentOrder paymentOrderStatusUpdated) {
+        Message<PaymentOrder> paymentOrderMessage = MessageBuilder
+                .withPayload(paymentOrderStatusUpdated)
+                .setHeader(KafkaHeaders.TOPIC, "paymentOrder")
+                .build();
+
+        paymentOrderTemplate.send(paymentOrderMessage);
     }
 }

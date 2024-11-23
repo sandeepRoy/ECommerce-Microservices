@@ -18,6 +18,7 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer order_id;
+    private String razorpay_order_id;
     private String customer_email;
     private String customer_name;
     private String customer_phone;

@@ -27,8 +27,6 @@ public class PaymentController {
     @Autowired
     public LoadCartService loadCartService;
 
-    public PaymentOrder paymentOrder;
-
     @GetMapping("/")
     public String init() {
         return "index";
@@ -43,18 +41,18 @@ public class PaymentController {
     }
 
     // shouldn't be listed
+    // Development : Need to send generated paymentOrder to Kafka Publisher
     @PostMapping("/handle-payment-callback")
     public String handlePaymentCallback(@RequestParam Map<String, String> responsePayload) {
-        paymentOrder = paymentService.updateOrder(responsePayload);
+        paymentService.updateOrder(responsePayload);
         // Can we call Order-Service's /customer/generate-order here? We don't need to manually generate an order??
         return "success";
     }
 
-    // to be acting as client to order-service
-    // order service will use this paymentOrder to extract data and create a new order entry
-    @GetMapping(value = "/get-payment-order", produces = "application/json")
-    @ResponseBody
-    public ResponseEntity<PaymentOrder> getPaymentOrder() {
-        return new ResponseEntity<>(paymentOrder, HttpStatus.OK);
-    }
+    // We might not need this, as Kafka is taking over every completed payment and creating an order at Order-Service
+//    @GetMapping(value = "/get-payment-order", produces = "application/json")
+//    @ResponseBody
+//    public ResponseEntity<PaymentOrder> getPaymentOrder() {
+//        return new ResponseEntity<>(paymentOrder, HttpStatus.OK);
+//    }
 }

@@ -1,16 +1,19 @@
 package com.msa.order.services;
 
-import com.msa.order.clients.PaymentClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.order.entities.Order;
 import com.msa.order.repositories.OrderRepository;
-import com.msa.order.responses.PaymentOrderResponse;
+import com.msa.order.responses.PaymentOrder;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 @Service
 public class CustomerOrderService {
@@ -20,19 +23,20 @@ public class CustomerOrderService {
     @Autowired
     public OrderRepository orderRepository;
 
-    @Autowired
-    public PaymentClient paymentClient;
 
+    @KafkaListener(topics = "paymentOrder" , groupId = "ecommerce", containerFactory = "kafkaListenerContainerFactory")
+    public Order generateCustomerOrder(PaymentOrder paymentOrder) {
 
-    public Order generateCustomerOrder() {
-        PaymentOrderResponse paymentOrderResponse = paymentClient.getPaymentOrder().getBody();
+        logger.info("*******************////////***********************\nPayment Order At Order-Service: " + paymentOrder.toString() + "\n**************************************************************");
+
         Order order = Order
                 .builder()
-                .customer_name(paymentOrderResponse.getName())
-                .customer_phone(paymentOrderResponse.getPhone())
-                .customer_email(paymentOrderResponse.getEmail())
-                .customer_delivery_address(paymentOrderResponse.getDelivery_address())
-                .amount(paymentOrderResponse.getAmount())
+                .razorpay_order_id(paymentOrder.getRazorpay_order_id())
+                .customer_name(paymentOrder.getName())
+                .customer_phone(paymentOrder.getPhone())
+                .customer_email(paymentOrder.getEmail())
+                .customer_delivery_address(paymentOrder.getDelivery_address())
+                .amount(paymentOrder.getAmount())
                 .expected_delivery_date(LocalDate.from(LocalDate.now()).plusDays(7))
                 .status("ORDER_GENERATED")
                 .build();
