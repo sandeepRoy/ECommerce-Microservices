@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -55,4 +56,11 @@ public class Customer {
     )
     @JsonIgnore
     private Cart cart;
+
+    @OneToMany(
+            mappedBy = "customer",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL
+    )
+    private List<CustomerOrder> customerOrders = new ArrayList<>();
 }

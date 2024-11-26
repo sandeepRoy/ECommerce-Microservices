@@ -1,6 +1,7 @@
 package com.msa.order.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msa.order.clients.CustomerClient;
 import com.msa.order.entities.Order;
 import com.msa.order.repositories.OrderRepository;
 import com.msa.order.responses.PaymentOrder;
@@ -23,11 +24,12 @@ public class CustomerOrderService {
     @Autowired
     public OrderRepository orderRepository;
 
+    @Autowired
+    public CustomerClient customerClient;
+
 
     @KafkaListener(topics = "paymentOrder" , groupId = "ecommerce", containerFactory = "kafkaListenerContainerFactory")
     public Order generateCustomerOrder(PaymentOrder paymentOrder) {
-
-        logger.info("*******************////////***********************\nPayment Order At Order-Service: " + paymentOrder.toString() + "\n**************************************************************");
 
         Order order = Order
                 .builder()
@@ -42,6 +44,9 @@ public class CustomerOrderService {
                 .build();
 
         logger.info("Order: " + order.toString());
+
+        // remove the cart at Customer-Service
+        // customerClient.deleteCart_afterSuccesfulOrderGeneration();
 
         orderRepository.save(order);
         return order;

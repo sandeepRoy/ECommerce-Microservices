@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 @RestController
-@RequestMapping("/customer")
+@RequestMapping("/order")
 public class CustomerOrderController {
 
     public static final Logger logger = Logger.getLogger(CustomerOrderController.class.getName());

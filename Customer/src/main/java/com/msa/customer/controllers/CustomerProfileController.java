@@ -103,10 +103,6 @@ public class CustomerProfileController {
         }
     }
 
-    // Development Phase - Adding BuyLater items to Cart for purchase
-
-    // Testing 1 : Existing Cart & WishList : Pass
-    // Testing 2 : Non Existing Cart & Wishlist : In Progress
     @PutMapping("/add-buylater-to-cart")
     public ResponseEntity<Object> addToCart_buyLater() throws CustomerLoginException {
         if (TOKEN == "") {
@@ -115,6 +111,19 @@ public class CustomerProfileController {
         else {
             Cart cart = customerService.updateCart_addBuyLater();
             return new ResponseEntity<>(cart, HttpStatus.OK);
+        }
+    }
+
+    @PutMapping("/fetch-orders")
+    // Test 1: Check Functionality [ Customer Should have a List<CustomerOrder> ] (Pass)
+    // Test 2: CustomerOrder should also show the Products purchased (), what in order you don't see the items you purchased or what???
+    public ResponseEntity<Object> addOrders_toCustomerProfile() throws CustomerLoginException {
+        if(TOKEN == "") {
+            return new ResponseEntity<>("Customer Not Logged In!", HttpStatus.UNAUTHORIZED);
+        }
+        else{
+            Customer customer = customerService.fetchOrders_fromOrderService();
+            return new ResponseEntity<>(customer, HttpStatus.OK);
         }
     }
 }

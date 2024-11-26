@@ -4,6 +4,7 @@ import com.msa.customer.clients.AuthenticationClient;
 import com.msa.customer.dtos.CreateWishlistDto;
 import com.msa.customer.exceptions.customer.firstLogin.CustomerLoginException;
 import com.msa.customer.model.Cart;
+import com.msa.customer.model.Customer;
 import com.msa.customer.services.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

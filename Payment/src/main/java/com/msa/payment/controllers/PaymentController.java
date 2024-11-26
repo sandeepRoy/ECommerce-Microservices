@@ -40,19 +40,9 @@ public class PaymentController {
         return new ResponseEntity<>(paymentOrder, HttpStatus.CREATED);
     }
 
-    // shouldn't be listed
-    // Development : Need to send generated paymentOrder to Kafka Publisher
     @PostMapping("/handle-payment-callback")
     public String handlePaymentCallback(@RequestParam Map<String, String> responsePayload) {
         paymentService.updateOrder(responsePayload);
-        // Can we call Order-Service's /customer/generate-order here? We don't need to manually generate an order??
         return "success";
     }
-
-    // We might not need this, as Kafka is taking over every completed payment and creating an order at Order-Service
-//    @GetMapping(value = "/get-payment-order", produces = "application/json")
-//    @ResponseBody
-//    public ResponseEntity<PaymentOrder> getPaymentOrder() {
-//        return new ResponseEntity<>(paymentOrder, HttpStatus.OK);
-//    }
 }

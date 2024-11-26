@@ -2,6 +2,7 @@ package com.msa.customer.services;
 
 import com.msa.customer.clients.AuthenticationClient;
 import com.msa.customer.clients.CategoryWithProductsClient;
+import com.msa.customer.clients.OrderClient;
 import com.msa.customer.clients.ProductClient;
 import com.msa.customer.dtos.*;
 import com.msa.customer.exceptions.address.add.AddressAdditionException;
@@ -9,11 +10,8 @@ import com.msa.customer.exceptions.address.update.AddressUpdateException;
 import com.msa.customer.exceptions.customer.firstLogin.CustomerLoginException;
 import com.msa.customer.exceptions.customer.secondLogin.CustomerPreviouslyLoggedInException;
 import com.msa.customer.model.*;
-import com.msa.customer.repositories.AddressRepository;
-import com.msa.customer.repositories.CartRepository;
-import com.msa.customer.repositories.WishlistRepository;
-import com.msa.customer.repositories.CustomerRepository;
-import com.msa.customer.repositories.BuyLaterRepository;
+import com.msa.customer.repositories.*;
+import com.msa.customer.responses.OrderResponse;
 import com.msa.customer.responses.ProductList;
 import com.msa.customer.responses.Root;
 
@@ -49,6 +47,9 @@ public class CustomerService {
     public ProductClient productClient;
 
     @Autowired
+    public OrderClient orderClient;
+
+    @Autowired
     public WishlistRepository wishlistRepository;
 
     @Autowired
@@ -62,6 +63,9 @@ public class CustomerService {
 
     @Autowired
     public BuyLaterRepository buyLaterRepository;
+
+    @Autowired
+    public CustomerOrderRepository customerOrderRepository;
 
     @Autowired
     public AuthenticationClient authenticationClient;
@@ -700,5 +704,48 @@ public class CustomerService {
 
             return updated;
         }
+    }
+
+    // Fetch the List<Orders> from Order-Service
+    // Assign them as Customer with List<CustomerOrder>
+    public Customer fetchOrders_fromOrderService() throws CustomerLoginException {
+        if(userEmail == null) {
+            throw new CustomerLoginException("Customer Not Logged In");
+        }
+
+        Customer customer = new Customer();
+        customer.setCustomer_email(userEmail);
+
+        Example<Customer> customerExample = Example.of(customer);
+        Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
+
+
+        List<OrderResponse> orderResponses = orderClient.getAllOrders().getBody();
+
+        for(OrderResponse orderResponse : orderResponses) {
+            CustomerOrder customerOrder = CustomerOrder
+                    .builder()
+                    .order_id(orderResponse.getOrder_id())
+                    .razorpay_order_id(orderResponse.getRazorpay_order_id())
+                    .customer_email(orderResponse.getCustomer_email())
+                    .customer_name(orderResponse.getCustomer_name())
+                    .customer_phone(orderResponse.getCustomer_phone())
+                    .amount(orderResponse.getAmount())
+                    .expected_delivery_date(orderResponse.getExpected_delivery_date())
+                    .customer_delivery_address(orderResponse.getCustomer_delivery_address())
+                    .status(orderResponse.getStatus())
+                    .customer(customer_found)
+                    .build();
+
+            customerOrderRepository.save(customerOrder);
+
+            customer_found.getCustomerOrders().add(customerOrder);
+
+            customerRepository.save(customer_found);
+
+            // issue may arise for duplication
+        }
+
+        return customer_found;
     }
 }
