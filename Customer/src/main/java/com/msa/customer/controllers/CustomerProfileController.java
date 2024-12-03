@@ -115,8 +115,7 @@ public class CustomerProfileController {
     }
 
     @PutMapping("/fetch-orders")
-    // Test 1: Check Functionality [ Customer Should have a List<CustomerOrder> ] (Pass)
-    // Test 2: CustomerOrder should also show the Products purchased (), what in order you don't see the items you purchased or what???
+    // Issue : Duplicate Orders are being fetched
     public ResponseEntity<Object> addOrders_toCustomerProfile() throws CustomerLoginException {
         if(TOKEN == "") {
             return new ResponseEntity<>("Customer Not Logged In!", HttpStatus.UNAUTHORIZED);
@@ -126,4 +125,6 @@ public class CustomerProfileController {
             return new ResponseEntity<>(customer, HttpStatus.OK);
         }
     }
+
+
 }

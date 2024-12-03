@@ -27,11 +27,12 @@ public class CustomerOrderService {
     @Autowired
     public CustomerClient customerClient;
 
+    public static Order order;
 
     @KafkaListener(topics = "paymentOrder" , groupId = "ecommerce", containerFactory = "kafkaListenerContainerFactory")
     public Order generateCustomerOrder(PaymentOrder paymentOrder) {
 
-        Order order = Order
+        order = Order
                 .builder()
                 .razorpay_order_id(paymentOrder.getRazorpay_order_id())
                 .customer_name(paymentOrder.getName())
@@ -45,14 +46,7 @@ public class CustomerOrderService {
 
         logger.info("Order: " + order.toString());
 
-        // remove the cart at Customer-Service
-        // customerClient.deleteCart_afterSuccesfulOrderGeneration();
-
         orderRepository.save(order);
         return order;
-    }
-
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
     }
 }

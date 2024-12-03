@@ -720,32 +720,31 @@ public class CustomerService {
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
 
 
-        List<OrderResponse> orderResponses = orderClient.getAllOrders().getBody();
+        OrderResponse orderResponse = orderClient.getLastOrder().getBody();
 
-        for(OrderResponse orderResponse : orderResponses) {
-            CustomerOrder customerOrder = CustomerOrder
-                    .builder()
-                    .order_id(orderResponse.getOrder_id())
-                    .razorpay_order_id(orderResponse.getRazorpay_order_id())
-                    .customer_email(orderResponse.getCustomer_email())
-                    .customer_name(orderResponse.getCustomer_name())
-                    .customer_phone(orderResponse.getCustomer_phone())
-                    .amount(orderResponse.getAmount())
-                    .expected_delivery_date(orderResponse.getExpected_delivery_date())
-                    .customer_delivery_address(orderResponse.getCustomer_delivery_address())
-                    .status(orderResponse.getStatus())
-                    .customer(customer_found)
-                    .build();
 
-            customerOrderRepository.save(customerOrder);
+        CustomerOrder customerOrder = CustomerOrder
+                .builder()
+                .order_id(orderResponse.getOrder_id())
+                .razorpay_order_id(orderResponse.getRazorpay_order_id())
+                .customer_email(orderResponse.getCustomer_email())
+                .customer_name(orderResponse.getCustomer_name())
+                .customer_phone(orderResponse.getCustomer_phone())
+                .amount(orderResponse.getAmount())
+                .expected_delivery_date(orderResponse.getExpected_delivery_date())
+                .customer_delivery_address(orderResponse.getCustomer_delivery_address())
+                .status(orderResponse.getStatus())
+                .customer(customer_found)
+                .build();
 
-            customer_found.getCustomerOrders().add(customerOrder);
+        customerOrderRepository.save(customerOrder);
 
-            customerRepository.save(customer_found);
+        customer_found.getCustomerOrders().add(customerOrder);
 
-            // issue may arise for duplication
-        }
+        customerRepository.save(customer_found);
 
+        // Check for Duplication, Each Order should have an unique razorpay_payment_id
+        // Customer can order same items multiple times(subjected to inventory availibility), but duplicate orders aren't allowed
         return customer_found;
     }
 }

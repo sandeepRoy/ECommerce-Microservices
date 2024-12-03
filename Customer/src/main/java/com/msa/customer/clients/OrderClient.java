@@ -9,6 +9,6 @@ import java.util.List;
 
 @FeignClient(name = "orderClient", url = "http://localhost:8089/order")
 public interface OrderClient {
-    @GetMapping("/get-all")
-    public ResponseEntity<List<OrderResponse>> getAllOrders();
+    @GetMapping("/last")
+    public ResponseEntity<OrderResponse> getLastOrder(); // fetches the last order
 }

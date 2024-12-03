@@ -16,13 +16,8 @@ import java.util.logging.Logger;
 @RequestMapping("/order")
 public class CustomerOrderController {
 
-    public static final Logger logger = Logger.getLogger(CustomerOrderController.class.getName());
-
-    @Autowired
-    public CustomerOrderService customerOrderService;
-
-    @GetMapping("/get-all")
-    public ResponseEntity<List<Order>> getAllOrders() {
-        return new ResponseEntity<>(customerOrderService.getAllOrders(), HttpStatus.OK);
+    @GetMapping("/last")
+    public ResponseEntity<Order> getLastOrder() {
+        return new ResponseEntity<>(CustomerOrderService.order, HttpStatus.OK);
     }
 }
