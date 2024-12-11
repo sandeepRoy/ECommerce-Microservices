@@ -4,14 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.order.clients.CustomerClient;
 import com.msa.order.entities.Order;
 import com.msa.order.repositories.OrderRepository;
+import com.msa.order.responses.CartResponse;
 import com.msa.order.responses.PaymentOrder;
 
+import com.msa.order.responses.Wishlist;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -47,6 +50,7 @@ public class CustomerOrderService {
         logger.info("Order: " + order.toString());
 
         orderRepository.save(order);
+
         return order;
     }
 }

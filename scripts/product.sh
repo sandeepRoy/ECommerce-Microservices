@@ -1,4 +1,3 @@
-cd .. &&
 cd Product && 
 mvn clean install &&
 cd target

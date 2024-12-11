@@ -84,4 +84,15 @@ public class CustomerShoppingController {
             return new ResponseEntity<>(cart, HttpStatus.OK);
         }
     }
+
+    @DeleteMapping("/remove-cart")
+    public ResponseEntity<String> removeCart_postOrderGeneration() throws CustomerLoginException {
+        if(TOKEN == "") {
+            return new ResponseEntity<>("Customer Not Logged In!", HttpStatus.UNAUTHORIZED);
+        }
+        else {
+            String response = customerService.removeCart_postOrderGeneration();
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+    }
 }

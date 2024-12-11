@@ -115,7 +115,6 @@ public class CustomerProfileController {
     }
 
     @PutMapping("/fetch-orders")
-    // Issue : Duplicate Orders are being fetched
     public ResponseEntity<Object> addOrders_toCustomerProfile() throws CustomerLoginException {
         if(TOKEN == "") {
             return new ResponseEntity<>("Customer Not Logged In!", HttpStatus.UNAUTHORIZED);
@@ -125,6 +124,4 @@ public class CustomerProfileController {
             return new ResponseEntity<>(customer, HttpStatus.OK);
         }
     }
-
-
 }

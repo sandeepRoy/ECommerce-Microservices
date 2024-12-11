@@ -1,4 +1,3 @@
-cd .. &&
 cd Category && 
 mvn clean install &&
 cd target

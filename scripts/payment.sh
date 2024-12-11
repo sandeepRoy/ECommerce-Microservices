@@ -1,4 +1,3 @@
-cd .. &&
 cd Payment && 
 mvn clean install &&
 cd target

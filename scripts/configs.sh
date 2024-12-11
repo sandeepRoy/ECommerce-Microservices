@@ -1,4 +1,3 @@
-cd .. &&
 cd Config-Server && 
 mvn clean install &&
 cd target

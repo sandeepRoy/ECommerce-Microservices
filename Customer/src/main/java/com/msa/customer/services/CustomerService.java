@@ -35,6 +35,8 @@ import javax.management.RuntimeMBeanException;
 @Slf4j
 public class CustomerService {
 
+    private static Logger logger = Logger.getLogger(CustomerService.class.getName());
+
     public static final String SECRET_KEY = "cKNpYuq49z28DN+sH1FpDVLWX4vMd12QGWHx62oj3BGrQ4uNCr4Yxm5St3/P5dMUgVt3aK/0BK+zuqnQHMYZ1xAUMTpV09YCXimbAP2SYkUlZqI1XbIT5Idxsdu41xZ+VZAH3h6EZ+2WdrzezxJJ30URiyHu7bgGMPwoQjxidd5HR0uv7BVhD9xxEkI4jgWaZl0i9uKAZSqFfTaCTKCUzbK/COBQbj1SUQ7qT30XBTSdla+lK04wLAaJeiyGoXxnNFfMlS20uzmBJba8AdHxpmMmajptR8BdAUf+2HaX2MSHCzZRHXNwuW7mxFbDrMl0JpCAABBSMd7E51GaDnA1Vjcao7rzFuLVCXzkNt8P4F4";
     public static final String TOKEN_PREFIX = "Bearer ";
     private static String userEmail;
@@ -66,6 +68,9 @@ public class CustomerService {
 
     @Autowired
     public CustomerOrderRepository customerOrderRepository;
+
+    @Autowired
+    public CustomerPurchaseRepository customerPurchaseRepository;
 
     @Autowired
     public AuthenticationClient authenticationClient;
@@ -709,7 +714,7 @@ public class CustomerService {
     // Fetch the List<Orders> from Order-Service
     // Assign them as Customer with List<CustomerOrder>
     public Customer fetchOrders_fromOrderService() throws CustomerLoginException {
-        if(userEmail == null) {
+        if (userEmail == null) {
             throw new CustomerLoginException("Customer Not Logged In");
         }
 
@@ -719,11 +724,24 @@ public class CustomerService {
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
 
-
         OrderResponse orderResponse = orderClient.getLastOrder().getBody();
 
+        List<Wishlist> wishlist = customer_found.getWishlist();
+        List<CustomerPurchase> customerPurchaseList = new ArrayList<>();
 
-        CustomerOrder customerOrder = CustomerOrder
+        for(Wishlist wish : wishlist) {
+            CustomerPurchase customer_purchase = CustomerPurchase
+                    .builder()
+                    .product_name(wish.getProduct_name())
+                    .product_manufacturer(wish.getProduct_manufacturer())
+                    .product_quantity(wish.getProduct_quantity())
+                    .product_price(wish.getPayable_amount())
+                    .build();
+            CustomerPurchase save = customerPurchaseRepository.save(customer_purchase);
+            customerPurchaseList.add(save);
+        }
+
+        CustomerOrder customer_order = CustomerOrder
                 .builder()
                 .order_id(orderResponse.getOrder_id())
                 .razorpay_order_id(orderResponse.getRazorpay_order_id())
@@ -734,17 +752,29 @@ public class CustomerService {
                 .expected_delivery_date(orderResponse.getExpected_delivery_date())
                 .customer_delivery_address(orderResponse.getCustomer_delivery_address())
                 .status(orderResponse.getStatus())
+                .customer_purchase(customerPurchaseList)
                 .customer(customer_found)
                 .build();
+        CustomerOrder new_customer_order = customerOrderRepository.save(customer_order);
+        return customer_found;
+    }
 
-        customerOrderRepository.save(customerOrder);
+    // Remove cart post order generation
+    public String removeCart_postOrderGeneration() throws CustomerLoginException {
+        if(userEmail == null) {
+            throw new CustomerLoginException("Customer Not Logged In");
+        }
 
-        customer_found.getCustomerOrders().add(customerOrder);
+        Customer customer = new Customer();
+        customer.setCustomer_email(userEmail);
+
+        Example<Customer> customerExample = Example.of(customer);
+        Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
+
+        cartRepository.delete(customer_found.getCart());
+        customer_found.getWishlist().stream().forEach(wishlist -> wishlistRepository.delete(wishlist));
 
         customerRepository.save(customer_found);
-
-        // Check for Duplication, Each Order should have an unique razorpay_payment_id
-        // Customer can order same items multiple times(subjected to inventory availibility), but duplicate orders aren't allowed
-        return customer_found;
+        return "Cart has been deleted";
     }
 }

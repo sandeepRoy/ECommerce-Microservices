@@ -1,4 +1,3 @@
-cd .. &&
 cd Authentication && 
 mvn clean install &&
 cd target

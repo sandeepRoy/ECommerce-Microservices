@@ -1,4 +1,3 @@
-cd .. &&
 cd Order && 
 mvn clean install &&
 cd target
