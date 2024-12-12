@@ -8,6 +8,7 @@ import com.msa.customer.exceptions.customer.firstLogin.CustomerLoginException;
 import com.msa.customer.model.BuyLater;
 import com.msa.customer.model.Cart;
 import com.msa.customer.model.Customer;
+import com.msa.customer.model.CustomerOrder;
 import com.msa.customer.services.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -120,7 +121,8 @@ public class CustomerProfileController {
             return new ResponseEntity<>("Customer Not Logged In!", HttpStatus.UNAUTHORIZED);
         }
         else{
-            Customer customer = customerService.fetchOrders_fromOrderService();
+            CustomerOrder customerOrder = customerService.fetchOrders_fromOrderService();
+            Customer customer = customerService.addWishlist_toCustomerOrder(customerOrder);
             return new ResponseEntity<>(customer, HttpStatus.OK);
         }
     }

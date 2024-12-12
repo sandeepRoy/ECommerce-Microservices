@@ -713,7 +713,7 @@ public class CustomerService {
 
     // Fetch the List<Orders> from Order-Service
     // Assign them as Customer with List<CustomerOrder>
-    public Customer fetchOrders_fromOrderService() throws CustomerLoginException {
+    public CustomerOrder fetchOrders_fromOrderService() throws CustomerLoginException {
         if (userEmail == null) {
             throw new CustomerLoginException("Customer Not Logged In");
         }
@@ -726,21 +726,6 @@ public class CustomerService {
 
         OrderResponse orderResponse = orderClient.getLastOrder().getBody();
 
-        List<Wishlist> wishlist = customer_found.getWishlist();
-        List<CustomerPurchase> customerPurchaseList = new ArrayList<>();
-
-        for(Wishlist wish : wishlist) {
-            CustomerPurchase customer_purchase = CustomerPurchase
-                    .builder()
-                    .product_name(wish.getProduct_name())
-                    .product_manufacturer(wish.getProduct_manufacturer())
-                    .product_quantity(wish.getProduct_quantity())
-                    .product_price(wish.getPayable_amount())
-                    .build();
-            CustomerPurchase save = customerPurchaseRepository.save(customer_purchase);
-            customerPurchaseList.add(save);
-        }
-
         CustomerOrder customer_order = CustomerOrder
                 .builder()
                 .order_id(orderResponse.getOrder_id())
@@ -752,10 +737,33 @@ public class CustomerService {
                 .expected_delivery_date(orderResponse.getExpected_delivery_date())
                 .customer_delivery_address(orderResponse.getCustomer_delivery_address())
                 .status(orderResponse.getStatus())
-                .customer_purchase(customerPurchaseList)
                 .customer(customer_found)
                 .build();
-        CustomerOrder new_customer_order = customerOrderRepository.save(customer_order);
+        return customerOrderRepository.save(customer_order);
+    }
+
+    public Customer addWishlist_toCustomerOrder(CustomerOrder customerOrder) {
+        Customer customer_found = customerOrder.getCustomer();
+
+        List<Wishlist> wishlist = customer_found.getWishlist();
+        ArrayList<CustomerPurchase> customerPurchases = new ArrayList<>();
+
+        for(Wishlist wish : wishlist) {
+            CustomerPurchase customer_purchase = CustomerPurchase
+                    .builder()
+                    .product_name(wish.getProduct_name())
+                    .product_price(wish.getPayable_amount())
+                    .product_manufacturer(wish.getProduct_manufacturer())
+                    .product_quantity(wish.getProduct_quantity())
+                    .customer_order(customerOrder)
+                    .build();
+            CustomerPurchase new_customer_purchase = customerPurchaseRepository.save(customer_purchase);
+            customerPurchases.add(new_customer_purchase);
+        }
+
+        customerOrder.setCustomer_purchase(customerPurchases);
+        customerOrderRepository.save(customerOrder);
+
         return customer_found;
     }
 
