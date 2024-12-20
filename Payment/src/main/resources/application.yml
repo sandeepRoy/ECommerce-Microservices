@@ -24,6 +24,6 @@ spring:
 
 razorpay:
   key:
-    id: rzp_test_p8ORl58CBKF09o
+    id: 
   secret:
-    key: oqql3HGWO7Ubvln8DwLIH9ev
+    key: 
