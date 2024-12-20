@@ -5,6 +5,7 @@ import com.msa.customer.dtos.CreateWishlistDto;
 import com.msa.customer.exceptions.customer.firstLogin.CustomerLoginException;
 import com.msa.customer.model.Cart;
 import com.msa.customer.model.Customer;
+import com.msa.customer.model.Invoice;
 import com.msa.customer.services.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -85,6 +86,7 @@ public class CustomerShoppingController {
         }
     }
 
+    // i'll do it later, i don't want to create the wishlist and carts again!!!!
     @DeleteMapping("/remove-cart")
     public ResponseEntity<String> removeCart_postOrderGeneration() throws CustomerLoginException {
         if(TOKEN == "") {
@@ -93,6 +95,17 @@ public class CustomerShoppingController {
         else {
             String response = customerService.removeCart_postOrderGeneration();
             return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+    }
+
+    @PostMapping("/generate-invoice")
+    public ResponseEntity<Object> generate_bill() throws CustomerLoginException {
+        if(TOKEN == "") {
+            return new ResponseEntity<>("Customer Not Logged In!", HttpStatus.UNAUTHORIZED);
+        }
+        else {
+            Invoice invoice = customerService.generateInvoice();
+            return new ResponseEntity<>(invoice, HttpStatus.OK);
         }
     }
 }

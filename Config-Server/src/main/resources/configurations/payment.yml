@@ -33,6 +33,6 @@ spring:
 
 razorpay:
   key:
-    id: 
+    id: rzp_test_p8ORl58CBKF09o
   secret:
-    key:
+    key: oqql3HGWO7Ubvln8DwLIH9ev

@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -74,6 +75,9 @@ public class CustomerService {
 
     @Autowired
     public AuthenticationClient authenticationClient;
+
+    @Autowired
+    public InvoiceRepository invoiceRepository;
 
     public static String TOKEN;
 
@@ -783,6 +787,35 @@ public class CustomerService {
         customer_found.getWishlist().stream().forEach(wishlist -> wishlistRepository.delete(wishlist));
 
         customerRepository.save(customer_found);
-        return "Cart has been deleted";
+        return "Shopping Cart is Empty!";
+    }
+    // Generate Bill for CustomerOrders
+    public Invoice generateInvoice() throws CustomerLoginException {
+        if(userEmail == null) {
+            throw new CustomerLoginException("Customer Not Logged In");
+        }
+
+        Customer customer = new Customer();
+        customer.setCustomer_email(userEmail);
+
+        Example<Customer> customerExample = Example.of(customer);
+        Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
+
+        List<CustomerOrder> customerOrders = customer_found.getCustomerOrders();
+        CustomerOrder last_order = customerOrders.get(customerOrders.size() - 1);
+        last_order.setStatus("BILL_GENERATED");
+        customerOrderRepository.save(last_order);
+
+        // join the last_order with invoice?
+        Invoice invoice = Invoice
+                .builder()
+                .invoice_number("#ECMS-RETAIL-01") // make it dynamic
+                .invoice_generationDate(LocalDate.now())
+                .customerOrder(last_order)
+                .customer(customer_found)
+                .build();
+
+        Invoice new_invoice = invoiceRepository.save(invoice);
+        return new_invoice;
     }
 }

@@ -63,4 +63,11 @@ public class Customer {
             cascade = CascadeType.ALL
     )
     private List<CustomerOrder> customerOrders = new ArrayList<>();
+
+    @OneToMany(
+            mappedBy = "customer",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL
+    )
+    private List<Invoice> invoices = new ArrayList<>();
 }
