@@ -30,6 +30,8 @@ public class CustomerOrder {
     private LocalDate expected_delivery_date;
     private String customer_delivery_address;
     private String status;
+    private LocalDate payment_date;
+    private LocalDate order_date;
 
     @OneToMany(mappedBy = "customer_order", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<CustomerPurchase> customer_purchase = new ArrayList<>();

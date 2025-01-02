@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,4 +27,6 @@ public class PaymentOrder {
     private Double amount;
     private String order_status;
     private String razorpay_order_id;
+
+    private LocalDate payment_date; // payment-date
 }

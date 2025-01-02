@@ -14,6 +14,8 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -75,6 +77,7 @@ public class PaymentService {
         PaymentOrder found_paymentOrder = paymentOrderRepository.findOne(paymentOrderExample).get();
 
         found_paymentOrder.setOrder_status("PAYMENT_COMPLETED");
+        found_paymentOrder.setPayment_date(LocalDate.now());
         PaymentOrder paymentOrder_statusUpdated = paymentOrderRepository.save(found_paymentOrder);
 
         publishPaymentOrder(paymentOrder_statusUpdated);

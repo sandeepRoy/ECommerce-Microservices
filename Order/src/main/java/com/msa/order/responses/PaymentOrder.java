@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -25,5 +27,7 @@ public class PaymentOrder {
     private String order_status;
     @JsonProperty("razorpay_order_id")
     private String razorpay_order_id;
+    @JsonProperty("payment_date")
+    private LocalDate payment_date;
 }
 

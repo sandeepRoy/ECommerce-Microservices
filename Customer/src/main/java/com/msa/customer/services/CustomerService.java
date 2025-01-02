@@ -1,9 +1,6 @@
 package com.msa.customer.services;
 
-import com.msa.customer.clients.AuthenticationClient;
-import com.msa.customer.clients.CategoryWithProductsClient;
-import com.msa.customer.clients.OrderClient;
-import com.msa.customer.clients.ProductClient;
+import com.msa.customer.clients.*;
 import com.msa.customer.dtos.*;
 import com.msa.customer.exceptions.address.add.AddressAdditionException;
 import com.msa.customer.exceptions.address.update.AddressUpdateException;
@@ -19,8 +16,11 @@ import com.msa.customer.responses.Root;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +51,9 @@ public class CustomerService {
 
     @Autowired
     public OrderClient orderClient;
+
+    @Autowired
+    public PDFGeneratorClient pdfGeneratorClient;
 
     @Autowired
     public WishlistRepository wishlistRepository;
@@ -741,6 +744,8 @@ public class CustomerService {
                 .expected_delivery_date(orderResponse.getExpected_delivery_date())
                 .customer_delivery_address(orderResponse.getCustomer_delivery_address())
                 .status(orderResponse.getStatus())
+                .payment_date(orderResponse.getPayment_date())
+                .order_date(orderResponse.getOrder_date())
                 .customer(customer_found)
                 .build();
         return customerOrderRepository.save(customer_order);
@@ -816,6 +821,32 @@ public class CustomerService {
                 .build();
 
         Invoice new_invoice = invoiceRepository.save(invoice);
+
         return new_invoice;
+    }
+
+    public Invoice getInvoice() throws CustomerLoginException {
+        if(userEmail == null) {
+            throw new CustomerLoginException("Customer Not Logged In");
+        }
+
+        Customer customer = new Customer();
+        customer.setCustomer_email(userEmail);
+
+        Example<Customer> customerExample = Example.of(customer);
+        Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
+
+        List<Invoice> invoices = customer_found.getInvoices();
+        Invoice last_invoice = invoices.get(invoices.size() - 1);
+        ResponseEntity<String> pdf = pdfGeneratorClient.createPDF();
+        System.out.println(pdf);
+        return last_invoice;
+    }
+
+    public byte[] downloadInvoice() throws CustomerLoginException, IOException {
+        if(userEmail == null) {
+            throw new CustomerLoginException("Customer Not Logged In");
+        }
+        return pdfGeneratorClient.getPDF().getBody();
     }
 }

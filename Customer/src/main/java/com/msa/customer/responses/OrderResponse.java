@@ -19,4 +19,6 @@ public class OrderResponse {
     private LocalDate expected_delivery_date;
     private String customer_delivery_address;
     private String status;
+    private LocalDate payment_date;
+    private LocalDate order_date;
 }

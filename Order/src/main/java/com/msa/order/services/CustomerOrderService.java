@@ -45,6 +45,8 @@ public class CustomerOrderService {
                 .amount(paymentOrder.getAmount())
                 .expected_delivery_date(LocalDate.from(LocalDate.now()).plusDays(7))
                 .status("ORDER_GENERATED")
+                .payment_date(paymentOrder.getPayment_date())
+                .order_date(LocalDate.now())
                 .build();
 
         logger.info("Order: " + order.toString());

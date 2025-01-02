@@ -8,9 +8,11 @@ import com.msa.customer.model.Customer;
 import com.msa.customer.model.Invoice;
 import com.msa.customer.services.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/customer/cart")
@@ -99,13 +101,40 @@ public class CustomerShoppingController {
     }
 
     @PostMapping("/generate-invoice")
-    public ResponseEntity<Object> generate_bill() throws CustomerLoginException {
+    public ResponseEntity<Object> generate_invoice() throws CustomerLoginException {
         if(TOKEN == "") {
             return new ResponseEntity<>("Customer Not Logged In!", HttpStatus.UNAUTHORIZED);
         }
         else {
             Invoice invoice = customerService.generateInvoice();
             return new ResponseEntity<>(invoice, HttpStatus.OK);
+        }
+    }
+
+    @GetMapping("/get-invoice")
+    public ResponseEntity<Object> get_invoice() throws CustomerLoginException {
+        if(TOKEN == "") {
+            return new ResponseEntity<>("Customer Not Logged In!", HttpStatus.UNAUTHORIZED);
+        }
+        else {
+            Invoice invoice = customerService.getInvoice();
+            return new ResponseEntity<>(invoice, HttpStatus.OK);
+        }
+    }
+
+    @GetMapping("/download-invoice")
+    public ResponseEntity<Object> download_invoice() throws CustomerLoginException, IOException {
+        if(TOKEN == "") {
+            return new ResponseEntity<>("Customer Not Logged In!", HttpStatus.UNAUTHORIZED);
+        }
+        else {
+            byte[] pdf = customerService.downloadInvoice();
+
+            HttpHeaders httpHeaders = new HttpHeaders();
+            httpHeaders.setContentType(MediaType.APPLICATION_PDF);
+            httpHeaders.setContentDisposition(ContentDisposition.attachment().filename("invoice.pdf").build());
+
+            return new ResponseEntity<>(pdf, httpHeaders, HttpStatus.OK);
         }
     }
 }
