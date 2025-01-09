@@ -21,3 +21,7 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: '*'
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
+

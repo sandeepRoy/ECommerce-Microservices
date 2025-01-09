@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: email
+
+  mail:
+    host: localhost
+    port: 2525
+    protocol: smtp
+    smtp:
+      auth: false
+      starttls:
+        enabled: false
+
+server:
+  port: 8092
+
+

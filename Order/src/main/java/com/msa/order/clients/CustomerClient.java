@@ -1,6 +1,7 @@
 package com.msa.order.clients;
 
 import com.msa.order.responses.CartResponse;
+import com.msa.order.responses.invoicing.InvoiceResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,4 +15,10 @@ public interface CustomerClient {
 
     @DeleteMapping("/cart/remove-cart")
     public ResponseEntity<Object> removeCart_postOrderGeneration();
+
+    @GetMapping("/cart/get-invoice")
+    public ResponseEntity<InvoiceResponse> get_invoice();
+
+    @GetMapping("/cart/download-invoice")
+    public ResponseEntity<byte[]> download_invoice();
 }
