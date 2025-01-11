@@ -30,4 +30,10 @@ public class CustomerOrderController {
         String response = customerOrderService.sendEmaill();
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
+
+    @PostMapping("/send-sms")
+    public ResponseEntity<String> sendTextMessage() {
+        String response = customerOrderService.sendSMS();
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
 }

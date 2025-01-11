@@ -1,0 +1,7 @@
+server:
+  port: 8093
+
+twillio:
+  account_sid: 
+  auth_token: 
+  trial_number: 

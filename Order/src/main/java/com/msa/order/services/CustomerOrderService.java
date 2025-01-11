@@ -3,8 +3,10 @@ package com.msa.order.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.order.clients.CustomerClient;
 import com.msa.order.clients.EmailingClient;
+import com.msa.order.clients.MessegingClient;
 import com.msa.order.entities.Order;
 import com.msa.order.repositories.OrderRepository;
+import com.msa.order.requests.sms.SMSRequest;
 import com.msa.order.responses.CartResponse;
 import com.msa.order.responses.PaymentOrder;
 
@@ -39,6 +41,9 @@ public class CustomerOrderService {
     
     @Autowired
     public EmailingClient emailingClient;
+
+    @Autowired
+    public MessegingClient messegingClient;
 
     public static Order order;
 
@@ -106,6 +111,31 @@ public class CustomerOrderService {
         emailingClient.sendEmail(customerEmail, invoiceNumber, subject, multipartFile);
 
         return "Email Sent!";
+    }
+
+    public String sendSMS() {
+        InvoiceResponse invoiceResponse = customerClient.get_invoice().getBody();
+
+        logger.info("Invoice Response : " + invoiceResponse);
+
+        String items = ""; // body
+        ArrayList<CustomerPurchase> purchaseList = invoiceResponse.getCustomerOrder().getCustomer_purchase();
+        for(CustomerPurchase customerPurchase : purchaseList) {
+            items += customerPurchase.getProduct_name() + ", " + customerPurchase.getProduct_price() + ", " + customerPurchase.getProduct_quantity() + '\n';
+        }
+
+        SMSRequest smsRequest = new SMSRequest();
+        smsRequest.setPhone_number("+91" + invoiceResponse.getCustomerOrder().getCustomer_phone());
+        smsRequest.setMessage(
+                "Order " + invoiceResponse.getInvoice_number() + '\n' +
+                "Items - " + items + "is Accepted. " + '\n' +
+                "Expected Delivery Date - " + invoiceResponse.getCustomerOrder().getExpected_delivery_date() + '\n' +
+                "Track Your Order at : " + "http://ecms.com/customer/track-order"
+        );
+
+        messegingClient.sendSMS(smsRequest);
+
+        return "SMS Sent!";
     }
 
 
