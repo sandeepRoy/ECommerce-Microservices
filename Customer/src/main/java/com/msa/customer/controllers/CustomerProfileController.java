@@ -15,9 +15,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.logging.Logger;
+
 @RestController
 @RequestMapping("/customer/profile")
 public class CustomerProfileController {
+    public Logger logger = Logger.getLogger(CustomerProfileController.class.getName());
+
     @Autowired
     public CustomerService customerService;
 

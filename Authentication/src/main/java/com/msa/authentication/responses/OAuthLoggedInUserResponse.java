@@ -1,4 +1,4 @@
-package com.msa.authentication.requests;
+package com.msa.authentication.responses;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class AuthenticateRequest {
-    private String email;
-    private String password;
+public class OAuthLoggedInUserResponse {
+    private String email_id;
+    private String user_name;
 }

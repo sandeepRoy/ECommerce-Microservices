@@ -13,24 +13,19 @@ import com.msa.customer.responses.ProductList;
 import com.msa.customer.responses.Root;
 
 
-import jakarta.persistence.criteria.CriteriaBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import io.jsonwebtoken.Jwts;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.management.RuntimeMBeanException;
 
 @Service
 @Slf4j
@@ -90,6 +85,7 @@ public class CustomerService {
             processed_token += TOKEN.charAt(i);
         }
         CustomerService.TOKEN = processed_token;
+        logger.info("CustomerService.TOKEN :: " + CustomerService.TOKEN);
     }
 
     public String getUserEmail(String TOKEN) {
@@ -848,5 +844,21 @@ public class CustomerService {
             throw new CustomerLoginException("Customer Not Logged In");
         }
         return pdfGeneratorClient.getPDF().getBody();
+    }
+
+    public void registerOrLoginOAuthUser(String token) throws CustomerPreviouslyLoggedInException {
+        CustomerService.TOKEN = token;
+        userEmail = getUserEmail(token);
+
+        List<Customer> all_customers = customerRepository.findAll();
+
+        for(Customer customer : all_customers) {
+            if(customer.getCustomer_email().equals(userEmail)){
+                throw new CustomerPreviouslyLoggedInException("Login SuccessFull!");
+            }
+        }
+        Customer new_customer = new Customer();
+        new_customer.setCustomer_email(userEmail);
+        customerRepository.save(new_customer);
     }
 }

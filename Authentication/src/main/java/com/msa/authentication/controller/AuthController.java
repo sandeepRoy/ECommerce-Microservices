@@ -1,24 +1,22 @@
 package com.msa.authentication.controller;
 
-import com.msa.authentication.entities.User;
 import com.msa.authentication.repositories.UserRepository;
 import com.msa.authentication.responses.AuthResponse;
 import com.msa.authentication.requests.AuthenticateRequest;
-import com.msa.authentication.responses.UserProfileResponse;
 import com.msa.authentication.services.AuthenticationService;
 import com.msa.authentication.requests.RegisterRequest;
-import com.msa.authentication.services.JwtService;
-import io.jsonwebtoken.Jwt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+
+    public Logger logger = Logger.getLogger(AuthController.class.getName());
 
     @Autowired
     public AuthenticationService authenticationService;

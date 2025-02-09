@@ -12,3 +12,14 @@ spring:
     username: root
     password: Online#9900
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: 
+            client-secret: 
+          google:
+            client-id: 
+            client-secret: 
