@@ -4,12 +4,14 @@ import com.msa.customer.model.Gender;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class UpdateCustomerProfileDto {
     private String customer_name;
     private String customer_mobile;

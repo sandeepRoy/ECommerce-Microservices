@@ -1,10 +1,12 @@
 package com.msa.customer.controllers;
 
 import com.msa.customer.clients.AuthenticationClient;
+import com.msa.customer.clients.CachingClient;
 import com.msa.customer.clients.OAuthClient;
 import com.msa.customer.dtos.LoginCustomerDto;
 import com.msa.customer.dtos.RegisterCustomerDto;
 import com.msa.customer.exceptions.customer.secondLogin.CustomerPreviouslyLoggedInException;
+import com.msa.customer.model.Customer;
 import com.msa.customer.services.CustomerService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Logger;
 
 @RestController
@@ -29,6 +32,9 @@ public class CustomerAuthenticationController {
 
     @Autowired
     public OAuthClient oAuthClient;
+
+    @Autowired
+    public CachingClient cachingClient;
 
     public static String TOKEN;
 
@@ -65,6 +71,18 @@ public class CustomerAuthenticationController {
         }
         TOKEN = token;
         customerService.registerOrLoginOAuthUser(TOKEN);
-        return new ResponseEntity<>("SociaL Login Successfull!", HttpStatus.OK);
+        return new ResponseEntity<>("Social Login Successfull!", HttpStatus.OK);
     }
+
+    @GetMapping("/get-otp")
+    public void getOTP(@RequestParam(required = false) String mobile, @RequestParam(required = false) String emailId) {
+        customerService.generateOTP(mobile);
+    }
+
+   @GetMapping("/verify-otp")
+    public ResponseEntity<String> get(@RequestParam String otp) {
+       TOKEN = customerService.verifyOTP(otp);
+       customerService.setTOKEN(TOKEN);
+       return new ResponseEntity<>(TOKEN, HttpStatus.OK);
+   }
 }

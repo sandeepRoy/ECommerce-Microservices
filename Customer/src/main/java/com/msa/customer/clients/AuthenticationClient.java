@@ -17,4 +17,7 @@ public interface AuthenticationClient {
 
     @DeleteMapping("/remove")
     public String removeUser(@RequestParam String token);
+
+    @PostMapping("/otp-login")
+    public String otpLogin(@RequestParam String email);
 }

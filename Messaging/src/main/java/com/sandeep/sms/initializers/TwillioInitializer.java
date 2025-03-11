@@ -2,7 +2,6 @@ package com.sandeep.sms.initializers;
 
 import com.sandeep.sms.configurations.TwilioConfiguration;
 import com.twilio.Twilio;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 

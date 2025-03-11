@@ -15,6 +15,7 @@ import com.msa.customer.responses.Root;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -22,10 +23,14 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 
 import io.jsonwebtoken.Jwts;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
@@ -51,6 +56,9 @@ public class CustomerService {
     public PDFGeneratorClient pdfGeneratorClient;
 
     @Autowired
+    public MessegingClient messegingClient;
+
+    @Autowired
     public WishlistRepository wishlistRepository;
 
     @Autowired
@@ -72,10 +80,13 @@ public class CustomerService {
     public CustomerPurchaseRepository customerPurchaseRepository;
 
     @Autowired
+    public InvoiceRepository invoiceRepository;
+
+    @Autowired
     public AuthenticationClient authenticationClient;
 
     @Autowired
-    public InvoiceRepository invoiceRepository;
+    public CachingClient cachingClient;
 
     public static String TOKEN;
 
@@ -89,19 +100,37 @@ public class CustomerService {
     }
 
     public String getUserEmail(String TOKEN) {
-        String user_email = Jwts.parser()
+        String email = Jwts.parser()
                 .setSigningKey(SECRET_KEY)
                 .parseClaimsJws(TOKEN.replace(TOKEN_PREFIX, ""))
                 .getBody()
                 .getSubject();
-        System.out.println("86: Customer Service -- " + user_email);
-        return user_email;
+        System.out.println("86: Customer Service -- " + email);
+        return email;
     }
 
-    // GET - List<Root>, return all Categories with Products associated with them
-    public List<Root> getAllCategoryWithProducts() {
-        List<Root> allCategoryWithProducts = categoryWithProductsClient.getAllCategoryWithProducts();
-        return allCategoryWithProducts;
+    public String verifyOTP(String otp) {
+        ResponseEntity<String> mobileByOTPResponse = cachingClient.getMobileByOTP(otp);
+        if(mobileByOTPResponse.getStatusCode().is2xxSuccessful()) {
+            String mobile = mobileByOTPResponse.getBody();
+            Optional<Customer> existing_customer = customerRepository.findByCustomerMobile(mobile);
+            String email;
+
+            if(existing_customer.isPresent()) {
+                email = existing_customer.get().getCustomer_email();
+                userEmail = email;
+            }
+            else {
+                email = mobile + "@ecms.com";
+                userEmail = email;
+                Customer new_customer = new Customer();
+                new_customer.setCustomer_mobile(mobile);
+                new_customer.setCustomer_email(email);
+                customerRepository.save(new_customer);
+            }
+            return authenticationClient.otpLogin(email);
+        }
+        return "INVALID OTP!";
     }
 
     // GET - Logged In Customer's Profile and Address
@@ -117,6 +146,12 @@ public class CustomerService {
         Customer found_customer = customerRepository.findOne(customerExample).get();
 
         return found_customer;
+    }
+
+    // GET - List<Root>, return all Categories with Products associated with them
+    public List<Root> getAllCategoryWithProducts() {
+        List<Root> allCategoryWithProducts = categoryWithProductsClient.getAllCategoryWithProducts();
+        return allCategoryWithProducts;
     }
 
     // POST - After Login, make an entry in Customer table
@@ -860,5 +895,18 @@ public class CustomerService {
         Customer new_customer = new Customer();
         new_customer.setCustomer_email(userEmail);
         customerRepository.save(new_customer);
+    }
+
+    public void generateOTP(String mobile) {
+        String otp = String.valueOf(ThreadLocalRandom.current().nextInt(111111, 999999));
+        System.out.println("OTP: " + otp);
+        cachingClient.putOtpAndMobileInCache(otp, mobile);
+
+        SMSRequest smsRequest = SMSRequest
+                .builder()
+                .message(otp)
+                .phone_number(mobile)
+                .build();
+        messegingClient.sendSMS(smsRequest).getBody();
     }
 }

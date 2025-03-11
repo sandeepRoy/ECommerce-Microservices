@@ -20,8 +20,7 @@ public class TwillioSMSController {
     }
 
     @PostMapping("/send")
-    public ResponseEntity<String> sendSMS(@Validated @RequestBody SMSRequest smsRequest) {
+    public void sendSMS(@Validated @RequestBody SMSRequest smsRequest) {
         twillioSMSService.sendSMS(smsRequest);
-        return new ResponseEntity<>("SMS SENT!", HttpStatus.CREATED);
     }
 }

@@ -1,6 +1,5 @@
 package com.msa.authentication.services;
 
-import com.msa.authentication.handlers.CustomOAuthSucessHandler;
 import com.msa.authentication.repositories.UserRepository;
 import com.msa.authentication.responses.AuthResponse;
 import com.msa.authentication.requests.AuthenticateRequest;
@@ -17,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -58,6 +58,28 @@ public class AuthenticationService {
                 new UsernamePasswordAuthenticationToken(authenticateRequest.getEmail(), authenticateRequest.getPassword())
         );
         User user = userRepository.findUserByEmail(authenticateRequest.getEmail()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        String token = jwtService.generateToken(user);
+        AuthResponse authResponse = AuthResponse.builder().token(token).build();
+        return authResponse;
+    }
+
+    public AuthResponse otpLogin(String email) {
+        Optional<User> userByEmail = userRepository.findUserByEmail(email);
+        User user;
+        if(userByEmail.isPresent()) {
+            user = userByEmail.get();
+        }
+        else {
+            user = User
+                    .builder()
+                    .email(email)
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .firstname("not_provided")
+                    .lastname("not_provided")
+                    .role(Role.USER)
+                    .build();
+            userRepository.save(user);
+        }
         String token = jwtService.generateToken(user);
         AuthResponse authResponse = AuthResponse.builder().token(token).build();
         return authResponse;

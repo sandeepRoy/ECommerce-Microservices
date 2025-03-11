@@ -19,7 +19,6 @@ public class CustomOAuthSucessHandler implements AuthenticationSuccessHandler {
 
     public static String name = "";
     public static String email = "";
-
     public static String at_hash = "";
 
     Logger logger = Logger.getLogger(CustomOAuthSucessHandler.class.getName());

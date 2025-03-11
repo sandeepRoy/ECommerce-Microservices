@@ -33,6 +33,7 @@ public class CustomerProfileController {
 
     @GetMapping("/details")
     public ResponseEntity<Object> getCustomerProfile() throws CustomerLoginException {
+        System.out.println("CustomerAuthenticationController.TOKEN :: " + CustomerAuthenticationController.TOKEN);
         if(TOKEN == "") {
             return new ResponseEntity<>("Customer Not Logged In!", HttpStatus.UNAUTHORIZED);
         }

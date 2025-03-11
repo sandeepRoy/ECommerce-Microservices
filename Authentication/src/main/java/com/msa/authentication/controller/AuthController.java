@@ -50,4 +50,9 @@ public class AuthController {
         Boolean response = authenticationService.validateToken(token);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
+
+    @PostMapping("/otp-login")
+    public ResponseEntity<AuthResponse> otpLogin(@RequestParam String email) {
+        return ResponseEntity.ok(authenticationService.otpLogin(email));
+    }
 }
