@@ -8,7 +8,7 @@ spring:
     show-sql: true
 
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/msa_ecommerce_payment
+    url: jdbc:mysql://root:RkfbJSyYIDcbPhhfEvJfaIxpNjcLEuGL@turntable.proxy.rlwy.net:39690/railway
     username: root
-    password: Online#9900
+    password: RkfbJSyYIDcbPhhfEvJfaIxpNjcLEuGL
     driver-class-name: com.mysql.cj.jdbc.Driver
