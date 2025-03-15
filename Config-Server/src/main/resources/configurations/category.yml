@@ -7,8 +7,9 @@ spring:
       ddl-auto: update
     show-sql: true
 
-  datasource:
-    url: jdbc:mysql://root:RkfbJSyYIDcbPhhfEvJfaIxpNjcLEuGL@turntable.proxy.rlwy.net:39690/railway
-    username: root
-    password: RkfbJSyYIDcbPhhfEvJfaIxpNjcLEuGL
-    driver-class-name: com.mysql.cj.jdbc.Driver
+datasource:
+  url: jdbc:mysql://turntable.proxy.rlwy.net:39690/railway?useSSL=false&allowPublicKeyRetrieval=true
+  username: ${DB_USERNAME}
+  password: ${DB_PASSWORD}
+  driver-class-name: com.mysql.cj.jdbc.Driver
+
