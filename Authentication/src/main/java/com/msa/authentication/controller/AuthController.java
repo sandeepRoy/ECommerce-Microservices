@@ -1,6 +1,8 @@
 package com.msa.authentication.controller;
 
+import com.msa.authentication.entities.User;
 import com.msa.authentication.repositories.UserRepository;
+import com.msa.authentication.requests.UpdateNameRequest;
 import com.msa.authentication.responses.AuthResponse;
 import com.msa.authentication.requests.AuthenticateRequest;
 import com.msa.authentication.services.AuthenticationService;
@@ -54,5 +56,10 @@ public class AuthController {
     @PostMapping("/otp-login")
     public ResponseEntity<AuthResponse> otpLogin(@RequestParam String email) {
         return ResponseEntity.ok(authenticationService.otpLogin(email));
+    }
+
+    @PutMapping("/update-name")
+    public ResponseEntity<String> update(@RequestParam String email, @RequestBody UpdateNameRequest updateNameRequest) {
+        return ResponseEntity.ok(authenticationService.updateName(email, updateNameRequest));
     }
 }

@@ -2,6 +2,7 @@ package com.msa.customer.clients;
 
 import com.msa.customer.dtos.LoginCustomerDto;
 import com.msa.customer.dtos.RegisterCustomerDto;
+import com.msa.customer.dtos.UpdateNameDto;
 import com.msa.customer.responses.UserProfileResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
@@ -20,4 +21,7 @@ public interface AuthenticationClient {
 
     @PostMapping("/otp-login")
     public String otpLogin(@RequestParam String email);
+
+    @PutMapping("/update-name")
+    public String update(@RequestParam String email, @RequestBody UpdateNameDto updateNameDto);
 }

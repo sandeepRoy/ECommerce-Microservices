@@ -1,6 +1,7 @@
 package com.msa.authentication.services;
 
 import com.msa.authentication.repositories.UserRepository;
+import com.msa.authentication.requests.UpdateNameRequest;
 import com.msa.authentication.responses.AuthResponse;
 import com.msa.authentication.requests.AuthenticateRequest;
 import com.msa.authentication.requests.RegisterRequest;
@@ -99,5 +100,13 @@ public class AuthenticationService {
             boolean isValid = jwtService.isTokenExpired(token);
             return isValid;
         } catch (Exception e) { return false;}
+    }
+
+    public String updateName(String email, UpdateNameRequest updateNameRequest) {
+        User user = userRepository.findUserByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
+        user.setFirstname(updateNameRequest.getFirst_name());
+        user.setLastname(updateNameRequest.getLast_name());
+        userRepository.save(user);
+        return "Updated";
     }
 }

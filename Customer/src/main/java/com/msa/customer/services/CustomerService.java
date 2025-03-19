@@ -109,30 +109,6 @@ public class CustomerService {
         return email;
     }
 
-    public String verifyOTP(String otp) {
-        ResponseEntity<String> mobileByOTPResponse = cachingClient.getMobileByOTP(otp);
-        if(mobileByOTPResponse.getStatusCode().is2xxSuccessful()) {
-            String mobile = mobileByOTPResponse.getBody();
-            Optional<Customer> existing_customer = customerRepository.findByCustomerMobile(mobile);
-            String email;
-
-            if(existing_customer.isPresent()) {
-                email = existing_customer.get().getCustomer_email();
-                userEmail = email;
-            }
-            else {
-                email = mobile + "@ecms.com";
-                userEmail = email;
-                Customer new_customer = new Customer();
-                new_customer.setCustomer_mobile(mobile);
-                new_customer.setCustomer_email(email);
-                customerRepository.save(new_customer);
-            }
-            return authenticationClient.otpLogin(email);
-        }
-        return "INVALID OTP!";
-    }
-
     // GET - Logged In Customer's Profile and Address
     public Customer getCustomerProfile() throws CustomerLoginException {
         if(userEmail == null) {
@@ -189,6 +165,11 @@ public class CustomerService {
         found_customer.setGender(updateCustomerProfileDto.getGender());
 
         Customer updated_customer = customerRepository.save(found_customer);
+
+        String[] name = updated_customer.getCustomer_name().split(" ");
+        UpdateNameDto updateNameDto = UpdateNameDto.builder().first_name(name[0]).last_name(name[1]).build();
+
+        authenticationClient.update(updated_customer.getCustomer_email(), updateNameDto);
         return updated_customer;
     }
 
@@ -908,5 +889,29 @@ public class CustomerService {
                 .phone_number(mobile)
                 .build();
         messegingClient.sendSMS(smsRequest).getBody();
+    }
+
+    public String verifyOTP(String otp) {
+        ResponseEntity<String> mobileByOTPResponse = cachingClient.getMobileByOTP(otp);
+        if(mobileByOTPResponse.getStatusCode().is2xxSuccessful()) {
+            String mobile = mobileByOTPResponse.getBody();
+            Optional<Customer> existing_customer = customerRepository.findByCustomerMobile(mobile);
+            String email;
+
+            if(existing_customer.isPresent()) {
+                email = existing_customer.get().getCustomer_email();
+                userEmail = email;
+            }
+            else {
+                email = mobile + "@ecms.com";
+                userEmail = email;
+                Customer new_customer = new Customer();
+                new_customer.setCustomer_mobile(mobile);
+                new_customer.setCustomer_email(email);
+                customerRepository.save(new_customer);
+            }
+            return authenticationClient.otpLogin(email);
+        }
+        return "INVALID OTP!";
     }
 }

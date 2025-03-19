@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  config-service:                         # Rename to match the microservice
+    build:
+      context: ./Config-Server            # Path to microservice
+    ports:
+      - "8080:8080"                       # Map to host
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+    networks:
+      - ecommerce-network
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres8
+      POSTGRES_DB: ecommerce
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ecommerce-network
+
+networks:
+  ecommerce-network:
+    driver: bridge
+
+volumes:
+  postgres_data: {}
