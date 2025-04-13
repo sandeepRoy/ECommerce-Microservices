@@ -39,3 +39,4 @@ public class CustomOAuthSucessHandler implements AuthenticationSuccessHandler {
         return List.of(name, email, at_hash);
     }
 }
+

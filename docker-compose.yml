@@ -1,35 +1,73 @@
 version: '3.8'
 
 services:
-  config-service:                         # Rename to match the microservice
-    build:
-      context: ./Config-Server            # Path to microservice
-    ports:
-      - "8080:8080"                       # Map to host
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    restart: always
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-    networks:
-      - ecommerce-network
-    depends_on:
-      - db
-
-  db:
-    image: postgres:14
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres8
-      POSTGRES_DB: ecommerce
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ecommerce
+      MYSQL_USER: ecms
+      MYSQL_PASSWORD: ecms
     ports:
-      - "5432:5432"
+      - "3307:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     networks:
-      - ecommerce-network
+      - ecommerce_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  config-server:
+    build: ./Config-Server
+    container_name: config-server
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    networks:
+      - ecommerce_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  authentication:
+    build: ./Authentication
+    container_name: authentication
+    restart: always
+    ports:
+      - "8084:8084"
+    networks:
+      - ecommerce_network
+
+  category:
+    build: ./Category
+    container_name: category
+    restart: always
+    ports:
+      - "8085:8085"
+    networks:
+      - ecommerce_network
+
+  product:
+    build: ./Product
+    container_name: product
+    restart: always
+    ports:
+      - "8086:8086"
+    networks:
+      - ecommerce_network
 
 networks:
-  ecommerce-network:
+  ecommerce_network:
     driver: bridge
 
 volumes:
-  postgres_data: {}
+  mysql_data:

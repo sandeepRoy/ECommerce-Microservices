@@ -27,8 +27,8 @@ public class SecurityConfiguration {
         httpSecurity
                 .csrf().disable()                                                                             // cross browser restriction disabled
                 .authorizeHttpRequests(authorize -> authorize                                                 // authorize each request, by finding the url pattern
-                        .requestMatchers("/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()         // some open endpoint/s
-                        .requestMatchers("/oauth/**").authenticated())                                        // some authenticated endpoint/s
+                        .requestMatchers("/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()   // some open endpoint/s
+                        .requestMatchers("/oauth/**").authenticated())                                      // some authenticated endpoint/s
                 .oauth2Login(oauth2 -> oauth2.successHandler(new CustomOAuthSucessHandler()))                 // requires oauth consent screen, handles : Line 16 : CustomOAuthSucessHandler
                 .sessionManagement(session -> session                                                         // authentication requires a session
                         .sessionCreationPolicy(SessionCreationPolicy.ALWAYS))                                 // create a session and keep it on

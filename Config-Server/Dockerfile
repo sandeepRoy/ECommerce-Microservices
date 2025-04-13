@@ -1,12 +1,14 @@
-# Use OpenJDK 21 image
-FROM openjdk:21-jdk-slim
+# Use an OpenJDK base image
+FROM openjdk:17
+
 WORKDIR /app
 
-# Copy the JAR file into the container
 COPY target/Config-Server-0.0.1-SNAPSHOT.jar config-server.jar
 
-# Expose the port
+COPY wait-for-mysql.sh /app/
+
+RUN chmod +x /app/wait-for-mysql.sh
+
 EXPOSE 8080
 
-# Run the application with the correct JAR name
 ENTRYPOINT ["java", "-jar", "config-server.jar"]

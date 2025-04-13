@@ -79,10 +79,17 @@ public class CustomerAuthenticationController {
         customerService.generateOTP(mobile);
     }
 
+   // Issue: Invalid OTP(not existing in Redis is also creating a new customer, why?
    @GetMapping("/verify-otp")
     public ResponseEntity<String> get(@RequestParam String otp) {
-       TOKEN = customerService.verifyOTP(otp);
-       customerService.setTOKEN(TOKEN);
-       return new ResponseEntity<>(TOKEN, HttpStatus.OK);
+       String response = customerService.verifyOTP(otp);
+       if(response != "INVALID OTP") {
+           TOKEN = response;
+           customerService.setTOKEN(TOKEN);
+           return new ResponseEntity<>(TOKEN, HttpStatus.OK);
+       }
+       else {
+           return new ResponseEntity<>("INVALID OTP", HttpStatus.BAD_REQUEST);
+       }
    }
 }

@@ -892,10 +892,13 @@ public class CustomerService {
     }
 
     public String verifyOTP(String otp) {
-        ResponseEntity<String> mobileByOTPResponse = cachingClient.getMobileByOTP(otp);
-        if(mobileByOTPResponse.getStatusCode().is2xxSuccessful()) {
-            String mobile = mobileByOTPResponse.getBody();
-            Optional<Customer> existing_customer = customerRepository.findByCustomerMobile(mobile);
+        String mobileByOTPResponse = cachingClient.getMobileByOTP(otp);
+        log.info("mobileByOTPResponse: " + mobileByOTPResponse);
+        if(mobileByOTPResponse.equals("Not Found")) {
+            return "INVALID OTP";
+        }
+        else {
+            Optional<Customer> existing_customer = customerRepository.findByCustomerMobile(mobileByOTPResponse);
             String email;
 
             if(existing_customer.isPresent()) {
@@ -903,15 +906,14 @@ public class CustomerService {
                 userEmail = email;
             }
             else {
-                email = mobile + "@ecms.com";
+                email = mobileByOTPResponse + "@ecms.com";
                 userEmail = email;
                 Customer new_customer = new Customer();
-                new_customer.setCustomer_mobile(mobile);
+                new_customer.setCustomer_mobile(mobileByOTPResponse);
                 new_customer.setCustomer_email(email);
                 customerRepository.save(new_customer);
             }
             return authenticationClient.otpLogin(email);
         }
-        return "INVALID OTP!";
     }
 }
