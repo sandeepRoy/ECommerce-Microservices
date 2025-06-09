@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 @FeignClient(name = "caching", url = "http://localhost:8099/cache")
 public interface CachingClient {
     @GetMapping("/get")
-    public String getMobileByOTP(@RequestParam String otp);
+    public String getContactMediumByOTP(@RequestParam String otp);
 
     @PostMapping("/put")
-    public String putOtpAndMobileInCache(@RequestParam String otp, @RequestParam String mobile);
+    public String putOtpAndContactMediumInCache(@RequestParam String otp, @RequestParam String contact_medium);
 }

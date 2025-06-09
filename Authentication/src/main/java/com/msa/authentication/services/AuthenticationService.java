@@ -1,26 +1,25 @@
 package com.msa.authentication.services;
 
-import com.msa.authentication.repositories.UserRepository;
-import com.msa.authentication.requests.UpdateNameRequest;
-import com.msa.authentication.responses.AuthResponse;
-import com.msa.authentication.requests.AuthenticateRequest;
-import com.msa.authentication.requests.RegisterRequest;
+import com.msa.authentication.entities.CustomUserDetails;
 import com.msa.authentication.entities.Role;
 import com.msa.authentication.entities.User;
-import io.jsonwebtoken.Jwts;
+import com.msa.authentication.repositories.UserRepository;
+import com.msa.authentication.requests.*;
+import com.msa.authentication.responses.AuthResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.logging.Logger;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
@@ -37,6 +36,9 @@ public class AuthenticationService {
     public JwtService jwtService;
 
     @Autowired
+    public TokenBlacklistService tokenBlacklistService;
+
+    @Autowired
     public AuthenticationManager authenticationManager;
 
     public AuthResponse register(RegisterRequest registerRequest) {
@@ -49,8 +51,11 @@ public class AuthenticationService {
                 .role(Role.USER)
                 .build();
         User save = userRepository.save(user);
-        String token = jwtService.generateToken(user);
-        AuthResponse authResponse = AuthResponse.builder().token(token).build();
+        CustomUserDetails customUserDetails = new CustomUserDetails(save);
+        String access_token = jwtService.generateAccessToken(customUserDetails);
+        String refresh_token = jwtService.generateRefreshToken(customUserDetails);
+
+        AuthResponse authResponse = AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).build();
         return authResponse;
     }
 
@@ -59,8 +64,12 @@ public class AuthenticationService {
                 new UsernamePasswordAuthenticationToken(authenticateRequest.getEmail(), authenticateRequest.getPassword())
         );
         User user = userRepository.findUserByEmail(authenticateRequest.getEmail()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        String token = jwtService.generateToken(user);
-        AuthResponse authResponse = AuthResponse.builder().token(token).build();
+
+        CustomUserDetails customUserDetails = new CustomUserDetails(user);
+        String access_token = jwtService.generateAccessToken(customUserDetails);
+        String refresh_token = jwtService.generateRefreshToken(customUserDetails);
+
+        AuthResponse authResponse = AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).build();
         return authResponse;
     }
 
@@ -74,39 +83,81 @@ public class AuthenticationService {
             user = User
                     .builder()
                     .email(email)
-                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .password(passwordEncoder.encode(email)) // Mobile Number as email, OTP as password?
                     .firstname("not_provided")
                     .lastname("not_provided")
                     .role(Role.USER)
                     .build();
             userRepository.save(user);
         }
-        String token = jwtService.generateToken(user);
-        AuthResponse authResponse = AuthResponse.builder().token(token).build();
+
+        CustomUserDetails customUserDetails = new CustomUserDetails(user);
+        String accessToken = jwtService.generateAccessToken(customUserDetails);
+        String refreshToken = jwtService.generateRefreshToken(customUserDetails);
+        AuthResponse authResponse = AuthResponse.builder().access_token(accessToken).refresh_token(refreshToken).build();
         return authResponse;
     }
 
-    public String remove(String token) {
-        String user_email = jwtService.extractUsername(token);
+    public String remove(Authentication authentication) {
+        String user_email = authentication.getName();
         User userFound = userRepository.findUserByEmail(user_email).orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
         userRepository.delete(userFound);
         return "User Deleted";
     }
 
-    public Boolean validateToken(String token) {
-        try {
-
-            String username = jwtService.extractUsername(token);
-            boolean isValid = jwtService.isTokenExpired(token);
-            return isValid;
-        } catch (Exception e) { return false;}
+    public Boolean validateToken(Authentication authentication) {
+        String user_email = authentication.getName();
+        logger.info("user_email: " + user_email);
+        return user_email != null && !user_email.isEmpty();
     }
 
-    public String updateName(String email, UpdateNameRequest updateNameRequest) {
-        User user = userRepository.findUserByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
+    public User updateName(Authentication authentication, UpdateNameRequest updateNameRequest) {
+        String user_email = authentication.getName();
+        User user = userRepository.findUserByEmail(user_email).orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
         user.setFirstname(updateNameRequest.getFirst_name());
         user.setLastname(updateNameRequest.getLast_name());
         userRepository.save(user);
-        return "Updated";
+        return user;
+    }
+
+    public User updateEmailAndPassword(Authentication authentication, UpdateEmailAndPasswordRequest updateEmailAndPasswordRequest) {
+        String user_email = authentication.getName();
+        User user = userRepository.findUserByEmail(user_email).orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
+        user.setEmail(updateEmailAndPasswordRequest.getEmail());
+        userRepository.save(user);
+        return user;
+    }
+
+    public User changePassword(Authentication authentication, ChangePasswordRequest changePasswordRequest) {
+        String user_email = authentication.getName();
+        User user = userRepository.findUserByEmail(user_email).orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
+        user.setPassword(passwordEncoder.encode(changePasswordRequest.getPassword()));
+        userRepository.save(user);
+        return user;
+    }
+
+    public AuthResponse refreshAccessToken(String refresh_token) {
+        if(tokenBlacklistService.isRefreshTokenBlacklisted(refresh_token) == true) {
+            logger.warning("Refresh token has been blacklisted");
+            return AuthResponse.builder().access_token("TOKEN BLACKLISTED").refresh_token("TOKEN BLACKLISTED").build();
+        }
+        String userId = jwtService.extractUserIdFromRefreshToken(refresh_token); logger.info("AuthenticationService.Logged In User ID: " + userId);
+        User user = userRepository
+                .findById(Integer.valueOf(userId))
+                .orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
+        log.info("AuthenticationService.Logged In User: " +  user.toString());
+
+        CustomUserDetails customUserDetails = new CustomUserDetails(user);
+
+        if(jwtService.isRefreshTokenValid(refresh_token, user)) {
+            logger.warning("Refresh token has been validated");
+            String access_token = jwtService.generateAccessToken(customUserDetails);
+            return AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).build();
+        }
+        else {
+            logger.warning("Refresh token hasn't been validated");
+            return AuthResponse.builder().access_token("Unauthorized Access!").build();
+        }
     }
 }
+

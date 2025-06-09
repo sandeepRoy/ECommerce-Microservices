@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserProfileResponse {
-    public String firstname;
-    public String lastname;
+    public String firstName;
+    public String lastName;
+    public String email;
 }

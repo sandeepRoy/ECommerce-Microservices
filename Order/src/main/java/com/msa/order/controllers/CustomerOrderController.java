@@ -1,17 +1,13 @@
 package com.msa.order.controllers;
 
 import com.msa.order.entities.Order;
+import com.msa.order.responses.invoicing.InvoiceResponse;
 import com.msa.order.services.CustomerOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/order")
@@ -26,14 +22,20 @@ public class CustomerOrderController {
     }
 
     @PostMapping("/send-email")
-    public ResponseEntity<String> sendEmailInvoice() throws IOException {
-        String response = customerOrderService.sendEmaill();
+    public ResponseEntity<String> sendEmailInvoice(
+            @RequestHeader("Authorization") String access_token,
+            @RequestBody InvoiceResponse invoiceResponse
+    ) throws IOException {
+        String response = customerOrderService.sendEmaill(access_token, invoiceResponse);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PostMapping("/send-sms")
-    public ResponseEntity<String> sendTextMessage() {
-        String response = customerOrderService.sendSMS();
+    public ResponseEntity<String> sendTextMessage(
+            @RequestHeader("Authorization") String access_token,
+            @RequestBody InvoiceResponse invoiceResponse
+    ) {
+        String response = customerOrderService.sendSMS(access_token, invoiceResponse);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

@@ -1,21 +1,15 @@
 package com.msa.authentication.services;
 
-import com.msa.authentication.entities.Role;
+import com.msa.authentication.entities.CustomUserDetails;
 import com.msa.authentication.entities.User;
 import com.msa.authentication.handlers.CustomOAuthSucessHandler;
 import com.msa.authentication.repositories.UserRepository;
-import com.msa.authentication.requests.AuthenticateRequest;
 import com.msa.authentication.requests.RegisterRequest;
 import com.msa.authentication.responses.AuthResponse;
-import org.bouncycastle.jcajce.provider.digest.SHA256;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCrypt;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.logging.Logger;
 
 /*
@@ -42,28 +36,32 @@ public class OAuthService {
 
         String name = oAuthUserDetails.get(0);
         String email = oAuthUserDetails.get(1);
-        String at_hash = oAuthUserDetails.get(2);
+        String password = oAuthUserDetails.get(2);
 
         User user = userRepository.findUserByEmail(email).orElse(
-                User.builder().firstname("NOT_SET").lastname("NOT_SET").email(email).password(at_hash).build()
+                User.builder().firstname("NOT_SET").lastname("NOT_SET").email(email).password(password).build()
         );
 
+        CustomUserDetails customUserDetails = new CustomUserDetails(user);
+
         if(user.getFirstname() == "NOT_SET") {
-            return authenticationService.register(createRegisterRequest(name, email, at_hash));
+            return authenticationService.register(createRegisterRequest(name, email, password));
+            // need to make the OAuth Logged in user to login again using provided email & password,
+            // otherwise the User will not be in context
         }
         else {
-            String token = jwtService.generateToken(user);
-            return AuthResponse.builder().token(token).build();
+            String token = jwtService.generateAccessToken(customUserDetails);
+            return AuthResponse.builder().access_token(token).build();
         }
     }
 
-    public RegisterRequest createRegisterRequest(String name, String email, String at_hash) {
+    public RegisterRequest createRegisterRequest(String name, String email, String password) {
         RegisterRequest registerRequest = RegisterRequest
                 .builder()
                 .firstname(name.substring(0, name.indexOf(' ')))
                 .lastname(name.substring(name.indexOf(' ') + 1, name.length()))
                 .email(email)
-                .password(at_hash)
+                .password(password)
                 .build();
         return registerRequest;
     }

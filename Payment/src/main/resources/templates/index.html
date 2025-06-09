@@ -62,15 +62,31 @@
 </script>
 
 <script>
-
     // 1. Load data into forms from [GET - http://localhost:8088/payment/load-cart]
     document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromQuery = urlParams.get('access_token');
+
+        if (tokenFromQuery) {
+            localStorage.setItem("access_token", tokenFromQuery);  // Save for future use
+            console.log("Token saved to localStorage from URL.");
+        }
+
+        const access_token = localStorage.getItem("access_token");
+        console.log("Access Token: " + access_token);
+
         // Define the endpoint you want to get data from
-        const endpointUrl = "http://localhost:8088/payment/load-cart";  // Replace with your actual endpoint
+        const endpointUrl = "http://localhost:8088/payment/load-cart";                                                  // Replace with your actual endpoint
 
         // Fetch the data
-        fetch(endpointUrl)
-            .then(response => response.json())  // Parse the JSON response
+        fetch(endpointUrl, {
+                method : 'GET',
+                headers : {
+                    'Authorization': `Bearer ${access_token}`,                                                          // how to provide the token at runtime
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())                                                                          // Parse the JSON response
             .then(data => {
                 // Populate the form fields
                 document.getElementById("customer_name").value = data.customer_name;

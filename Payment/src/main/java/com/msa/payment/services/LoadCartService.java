@@ -11,8 +11,8 @@ public class LoadCartService {
     @Autowired
     public CustomerCartClient customerCartClient;
 
-    public CartResponse loadCart() {
-        CartResponse cartResponse = customerCartClient.getCustomerCart().getBody();
+    public CartResponse loadCart(String acess_token) {
+        CartResponse cartResponse = customerCartClient.getCustomerCart(acess_token).getBody();
         return cartResponse;
     }
 }

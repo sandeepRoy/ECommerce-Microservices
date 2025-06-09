@@ -1,12 +1,12 @@
 package com.msa.customer.controllers;
 
 import com.msa.customer.clients.AuthenticationClient;
-import com.msa.customer.clients.CachingClient;
-import com.msa.customer.clients.OAuthClient;
+import com.msa.customer.clients.LogoutClient;
 import com.msa.customer.dtos.LoginCustomerDto;
 import com.msa.customer.dtos.RegisterCustomerDto;
 import com.msa.customer.exceptions.customer.secondLogin.CustomerPreviouslyLoggedInException;
-import com.msa.customer.model.Customer;
+import com.msa.customer.responses.AuthResponse;
+import com.msa.customer.responses.OTPResponse;
 import com.msa.customer.services.CustomerService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.logging.Logger;
 
 @RestController
@@ -31,32 +30,16 @@ public class CustomerAuthenticationController {
     public AuthenticationClient authenticationClient;
 
     @Autowired
-    public OAuthClient oAuthClient;
-
-    @Autowired
-    public CachingClient cachingClient;
-
-    public static String TOKEN;
+    public LogoutClient logoutClient;
 
     @PostMapping("/register")
-    public ResponseEntity<String> registerCustomer(@RequestBody RegisterCustomerDto registerCustomerDto) {
-        authenticationClient.registerUser(registerCustomerDto);
-        return new ResponseEntity<>("Registration SuccessFull!", HttpStatus.OK);
+    public ResponseEntity<AuthResponse> registerCustomer(@RequestBody RegisterCustomerDto registerCustomerDto) {
+        return authenticationClient.registerUser(registerCustomerDto);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> loginCustomer(@RequestBody LoginCustomerDto loginCustomerDto) throws CustomerPreviouslyLoggedInException {
-        TOKEN = authenticationClient.loginUser(loginCustomerDto);
-        customerService.setTOKEN(TOKEN);
-        customerService.addCustomer(loginCustomerDto);
-        return new ResponseEntity<>("Log In SuccessFull!", HttpStatus.OK);
-    }
-
-    @GetMapping("/logout")
-    public ResponseEntity<String> logoutCustomer() {
-        String response = customerService.logoutCustomer();
-        TOKEN = "";
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    public ResponseEntity<AuthResponse> loginCustomer(@RequestBody LoginCustomerDto loginCustomerDto) throws CustomerPreviouslyLoggedInException {
+        return authenticationClient.loginUser(loginCustomerDto);
     }
 
     @GetMapping("/social-login")
@@ -65,31 +48,38 @@ public class CustomerAuthenticationController {
     }
 
     @GetMapping("/social-callback")
-    public ResponseEntity<String> socialCallback(@CookieValue(name = "JWT_TOKEN", required = false) String token) throws CustomerPreviouslyLoggedInException {
+    public ResponseEntity<AuthResponse> socialCallback(@CookieValue(name = "JWT_TOKEN", required = false) String token) throws CustomerPreviouslyLoggedInException {
         if(token == null) {
-            return new ResponseEntity<>("Social Login Failed!", HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
         }
-        TOKEN = token;
-        customerService.registerOrLoginOAuthUser(TOKEN);
-        return new ResponseEntity<>("Social Login Successfull!", HttpStatus.OK);
+        AuthResponse authResponse = AuthResponse.builder().access_token(token).build();
+        return new ResponseEntity<>(authResponse, HttpStatus.OK);
     }
 
     @GetMapping("/get-otp")
-    public void getOTP(@RequestParam(required = false) String mobile, @RequestParam(required = false) String emailId) {
-        customerService.generateOTP(mobile);
+    public ResponseEntity<OTPResponse> getOTP(@RequestParam(required = false) String mobile, @RequestParam(required = false) String emailId) {
+        OTPResponse otpResponse = customerService.generateOTP(mobile);
+        return new ResponseEntity<>(otpResponse, HttpStatus.OK);
     }
 
-   // Issue: Invalid OTP(not existing in Redis is also creating a new customer, why?
    @GetMapping("/verify-otp")
-    public ResponseEntity<String> get(@RequestParam String otp) {
-       String response = customerService.verifyOTP(otp);
-       if(response != "INVALID OTP") {
-           TOKEN = response;
-           customerService.setTOKEN(TOKEN);
-           return new ResponseEntity<>(TOKEN, HttpStatus.OK);
-       }
-       else {
-           return new ResponseEntity<>("INVALID OTP", HttpStatus.BAD_REQUEST);
-       }
+   public ResponseEntity<AuthResponse> get(@RequestParam String otp) {
+        AuthResponse authResponse = customerService.verifyOTP(otp);
+        if (authResponse.getAccess_token() != "INVALID OTP") {
+            return new ResponseEntity<>(authResponse, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(authResponse, HttpStatus.BAD_REQUEST);
+        }
+   }
+
+   @PostMapping("/refresh")
+   public ResponseEntity<AuthResponse> refresh(@RequestHeader("Authorization") String refresh_token) {
+        logger.info("Refresh Token :" + refresh_token);
+        return authenticationClient.refresh(refresh_token);
+   }
+
+   @PostMapping("/logout")
+   public ResponseEntity<String> logout(@RequestHeader("Authorization") String access_token, @RequestBody String refresh_token) {
+        return logoutClient.invoke(access_token, refresh_token);
    }
 }

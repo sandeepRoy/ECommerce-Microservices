@@ -2,4 +2,7 @@ spring:
   application:
     name: product
   config:
-    import: optional:configserver:http://config-server:8080
+    # Docker Config-Server
+#    import: optional:configserver:http://config-server:8080
+    # Local Config-Server
+    import: optional:configserver:http://localhost:8080/

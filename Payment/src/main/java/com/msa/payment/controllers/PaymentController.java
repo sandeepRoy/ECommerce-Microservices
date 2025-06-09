@@ -28,7 +28,7 @@ public class PaymentController {
     public LoadCartService loadCartService;
 
     @GetMapping("/")
-    public String init() {
+    public String init(@RequestParam String access_token) {
         return "index";
     }
 

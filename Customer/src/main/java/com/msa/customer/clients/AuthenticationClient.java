@@ -3,7 +3,9 @@ package com.msa.customer.clients;
 import com.msa.customer.dtos.LoginCustomerDto;
 import com.msa.customer.dtos.RegisterCustomerDto;
 import com.msa.customer.dtos.UpdateNameDto;
+import com.msa.customer.responses.AuthResponse;
 import com.msa.customer.responses.UserProfileResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,17 +13,14 @@ import org.springframework.web.bind.annotation.*;
 @FeignClient(name = "authentication", url = "http://localhost:8084/auth")
 public interface AuthenticationClient {
     @PostMapping("/register")
-    public String registerUser(@RequestBody RegisterCustomerDto registerCustomerDto);
+    public ResponseEntity<AuthResponse> registerUser(@RequestBody RegisterCustomerDto registerCustomerDto);
 
     @PostMapping("/login")
-    public String loginUser(@RequestBody LoginCustomerDto loginCustomerDto);
-
-    @DeleteMapping("/remove")
-    public String removeUser(@RequestParam String token);
+    public ResponseEntity<AuthResponse> loginUser(@RequestBody LoginCustomerDto loginCustomerDto);
 
     @PostMapping("/otp-login")
-    public String otpLogin(@RequestParam String email);
+    public ResponseEntity<AuthResponse> otpLogin(@RequestParam String email);
 
-    @PutMapping("/update-name")
-    public String update(@RequestParam String email, @RequestBody UpdateNameDto updateNameDto);
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@RequestHeader("Authorization") String refresh_token);
 }

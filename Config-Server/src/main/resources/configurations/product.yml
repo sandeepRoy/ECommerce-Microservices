@@ -10,8 +10,16 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
 
+  # Local Datasource
   datasource:
-    url: jdbc:mysql://mysql:3306/ecommerce
-    username: ecms
-    password: ecms
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/ecms_local
+    username: root
+    password: Online#9900
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # Docker Datasource
+#  datasource:
+#    url: jdbc:mysql://mysql:3306/ecommerce
+#    username: ecms
+#    password: ecms
+#    driver-class-name: com.mysql.cj.jdbc.Driver

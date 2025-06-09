@@ -25,17 +25,22 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
-                .csrf().disable()                                                                             // cross browser restriction disabled
-                .authorizeHttpRequests(authorize -> authorize                                                 // authorize each request, by finding the url pattern
-                        .requestMatchers("/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()   // some open endpoint/s
-                        .requestMatchers("/oauth/**").authenticated())                                      // some authenticated endpoint/s
-                .oauth2Login(oauth2 -> oauth2.successHandler(new CustomOAuthSucessHandler()))                 // requires oauth consent screen, handles : Line 16 : CustomOAuthSucessHandler
-                .sessionManagement(session -> session                                                         // authentication requires a session
-                        .sessionCreationPolicy(SessionCreationPolicy.ALWAYS))                                 // create a session and keep it on
-                .authenticationProvider(authenticationProvider)                                               // spring's security class to do this processing
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);                  // send unfiltered request for JWT processing
+                .csrf().disable()                                                                               // cross browser restriction disabled
+                .authorizeHttpRequests(authorize -> authorize                       // authorize each request, by finding the url pattern
+                        .requestMatchers("/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()     // some open endpoint/s
+                        .requestMatchers("/user/**").authenticated()
+                        .requestMatchers("/logout/**").authenticated()
+                        .requestMatchers("/oauth/**").authenticated())                                        // some authenticated endpoint/s
+                .oauth2Login(oauth2 -> oauth2.successHandler(                      // requires oauth consent screen,
+                                new CustomOAuthSucessHandler()
+                        )                                                                                       // handles : Line 16 : CustomOAuthSucessHandler
+                )
+                .sessionManagement(session -> session                        // authentication requires a session
+                        .sessionCreationPolicy(SessionCreationPolicy.ALWAYS))                                   // create a session and keep it on
+                .authenticationProvider(authenticationProvider)                                                 // spring's security class to do this processing
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);                    // send unfiltered request for JWT processing
 
-        return httpSecurity.build();                                                                          // return the request to HTTP
+        return httpSecurity.build();                                                                            // return the request to HTTP
     }
 }
 

@@ -5,7 +5,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +18,7 @@ public class CustomOAuthSucessHandler implements AuthenticationSuccessHandler {
 
     public static String name = "";
     public static String email = "";
-    public static String at_hash = "";
+    public static String password = "";
 
     Logger logger = Logger.getLogger(CustomOAuthSucessHandler.class.getName());
 
@@ -30,13 +29,12 @@ public class CustomOAuthSucessHandler implements AuthenticationSuccessHandler {
 
         name = attributes.get("name").toString();
         email = attributes.get("email").toString();
-        at_hash = attributes.get("at_hash").toString();
+        password = attributes.get("email").toString();
 
         response.sendRedirect("/oauth/success");
     }
 
     public static List<String> getOAuthUserDetails() {
-        return List.of(name, email, at_hash);
+        return List.of(name, email, password);
     }
 }
-

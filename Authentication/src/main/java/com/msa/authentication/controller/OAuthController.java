@@ -29,10 +29,10 @@ public class OAuthController {
     }
 
     @GetMapping("/success")
-    public void loginSuccess(HttpServletResponse httpServletResponse) throws IOException {
+    public ResponseEntity<AuthResponse> loginSuccess(HttpServletResponse httpServletResponse) throws IOException {
         AuthResponse authResponse = oAuthService.registerAndLoginOAuthUser();
 
-        Cookie jwtCookie = new Cookie("JWT_TOKEN", authResponse.getToken());
+        Cookie jwtCookie = new Cookie("JWT_TOKEN", authResponse.getAccess_token());
         jwtCookie.setHttpOnly(true);
         jwtCookie.setSecure(true);
         jwtCookie.setPath("/");
@@ -40,6 +40,8 @@ public class OAuthController {
 
         httpServletResponse.addCookie(jwtCookie);
         httpServletResponse.sendRedirect("http://localhost:8087/customer/auth/social-callback");
+
+        return new ResponseEntity<>(authResponse, HttpStatus.OK); // try loggin
     }
 }
 

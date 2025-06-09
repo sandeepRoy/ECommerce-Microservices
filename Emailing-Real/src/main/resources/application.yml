@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: email
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: 
+    password: 
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+server:
+  port: 8092

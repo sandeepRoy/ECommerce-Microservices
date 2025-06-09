@@ -8,12 +8,13 @@ import com.msa.customer.exceptions.customer.firstLogin.CustomerLoginException;
 import com.msa.customer.exceptions.customer.secondLogin.CustomerPreviouslyLoggedInException;
 import com.msa.customer.model.*;
 import com.msa.customer.repositories.*;
-import com.msa.customer.responses.OrderResponse;
-import com.msa.customer.responses.ProductList;
-import com.msa.customer.responses.Root;
+import com.msa.customer.responses.*;
 
 
+import feign.RequestInterceptor;
+import feign.RequestTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Example;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +39,8 @@ public class CustomerService {
 
     private static Logger logger = Logger.getLogger(CustomerService.class.getName());
 
-    public static final String SECRET_KEY = "cKNpYuq49z28DN+sH1FpDVLWX4vMd12QGWHx62oj3BGrQ4uNCr4Yxm5St3/P5dMUgVt3aK/0BK+zuqnQHMYZ1xAUMTpV09YCXimbAP2SYkUlZqI1XbIT5Idxsdu41xZ+VZAH3h6EZ+2WdrzezxJJ30URiyHu7bgGMPwoQjxidd5HR0uv7BVhD9xxEkI4jgWaZl0i9uKAZSqFfTaCTKCUzbK/COBQbj1SUQ7qT30XBTSdla+lK04wLAaJeiyGoXxnNFfMlS20uzmBJba8AdHxpmMmajptR8BdAUf+2HaX2MSHCzZRHXNwuW7mxFbDrMl0JpCAABBSMd7E51GaDnA1Vjcao7rzFuLVCXzkNt8P4F4";
+    @Value("${jwt.secret}")
+    private String SECRET_KEY;
     public static final String TOKEN_PREFIX = "Bearer ";
     private static String userEmail;
     private static String userName;
@@ -86,7 +88,13 @@ public class CustomerService {
     public AuthenticationClient authenticationClient;
 
     @Autowired
+    public UserClient userClient;
+
+    @Autowired
     public CachingClient cachingClient;
+
+    @Autowired
+    public EmailingClient emailingClient;
 
     public static String TOKEN;
 
@@ -99,24 +107,21 @@ public class CustomerService {
         logger.info("CustomerService.TOKEN :: " + CustomerService.TOKEN);
     }
 
-    public String getUserEmail(String TOKEN) {
-        String email = Jwts.parser()
-                .setSigningKey(SECRET_KEY)
-                .parseClaimsJws(TOKEN.replace(TOKEN_PREFIX, ""))
-                .getBody()
-                .getSubject();
-        System.out.println("86: Customer Service -- " + email);
-        return email;
+    // GET - List<Root>, return all Categories with Products associated with them
+    public List<Root> getAllCategoryWithProducts() {
+        List<Root> allCategoryWithProducts = categoryWithProductsClient.getAllCategoryWithProducts();
+        return allCategoryWithProducts;
     }
 
-    // GET - Logged In Customer's Profile and Address
-    public Customer getCustomerProfile() throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In!");
-        }
+    // GET - Logged In Customer's Profile
+    public Customer getCustomerProfile(String token) throws CustomerLoginException {
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(token).getBody();
+
+        String loggedInCustomerEmail = userProfileResponse.getEmail();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(loggedInCustomerEmail);
 
         Example<Customer> customerExample = Example.of(customer);
         Customer found_customer = customerRepository.findOne(customerExample).get();
@@ -124,38 +129,35 @@ public class CustomerService {
         return found_customer;
     }
 
-    // GET - List<Root>, return all Categories with Products associated with them
-    public List<Root> getAllCategoryWithProducts() {
-        List<Root> allCategoryWithProducts = categoryWithProductsClient.getAllCategoryWithProducts();
-        return allCategoryWithProducts;
-    }
-
     // POST - After Login, make an entry in Customer table
     // Condition - Check Existing entry before inserting new!!!!
-    public Customer addCustomer(LoginCustomerDto loginCustomerDto) throws CustomerPreviouslyLoggedInException {
-        userEmail = getUserEmail(TOKEN);
+    public Customer addCustomer(String token) throws CustomerPreviouslyLoggedInException {
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(token).getBody();
+
+        log.info(userProfileResponse.toString());
 
         List<Customer> all_customers = customerRepository.findAll();
 
         for(Customer customer : all_customers) {
-            if(customer.getCustomer_email().equals(userEmail)){
+            if(customer.getCustomer_email().equals(userProfileResponse.getEmail())){
                 throw new CustomerPreviouslyLoggedInException("Login SuccessFull!");
             }
         }
         Customer new_customer = new Customer();
-        new_customer.setCustomer_email(userEmail);
+        new_customer.setCustomer_email(userProfileResponse.getEmail());
+        new_customer.setCustomer_name(userProfileResponse.getFirstName() + " " + userProfileResponse.getLastName());
         Customer saved_customer = customerRepository.save(new_customer);
         return saved_customer;
     }
 
     // PUT - Update Logged In Customer's Profile
-    public Customer updateCustomerProfile(UpdateCustomerProfileDto updateCustomerProfileDto) throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In!");
-        }
+    public Customer updateCustomerProfile(String token, UpdateCustomerProfileDto updateCustomerProfileDto) throws CustomerLoginException {
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer found_customer = customerRepository.findOne(customerExample).get();
@@ -169,20 +171,18 @@ public class CustomerService {
         String[] name = updated_customer.getCustomer_name().split(" ");
         UpdateNameDto updateNameDto = UpdateNameDto.builder().first_name(name[0]).last_name(name[1]).build();
 
-        authenticationClient.update(updated_customer.getCustomer_email(), updateNameDto);
+        userClient.update(token, updateNameDto);
         return updated_customer;
     }
 
     // POST - Add Address to Customer's profile by logged-in user's email
     // Condition - Limit Address by 2
-    public Customer addAddressToCustomer(AddressAddDto addressAddDto) throws CustomerLoginException, AddressAdditionException {
+    public Customer addAddressToCustomer(String access_token, AddressAddDto addressAddDto) throws CustomerLoginException, AddressAdditionException {
 
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer found_customer = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found!"));
@@ -206,17 +206,15 @@ public class CustomerService {
         }
     }
 
-    public Customer updateAddressOfCustomer(String addressType, UpdateAddressDto updateAddressDto) throws CustomerLoginException, AddressUpdateException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public Customer updateAddressOfCustomer(String access_token, String addressType, UpdateAddressDto updateAddressDto) throws CustomerLoginException, AddressUpdateException {
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         if(addressType != "HOME" && addressType != "WORK") {
             throw new AddressUpdateException("Incorrect Address Type Provided in Path");
         }
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
         Example<Customer> customerExample = Example.of(customer);
         Customer found_customer = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found!"));
 
@@ -232,19 +230,16 @@ public class CustomerService {
                 addressRepository.save(address);
             }
         }
-
         return found_customer;
     }
 
     // DELETE - Remove an address of Logged-in Customer
-    public Customer deleteAddressOfCustomer(String addressType) throws CustomerLoginException {
+    public Customer deleteAddressOfCustomer(String access_token, String addressType) throws CustomerLoginException {
 
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer found_customer = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found!"));
@@ -260,22 +255,18 @@ public class CustomerService {
         return found_customer;
     }
 
-    public String deleteCustomer() throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public String deleteCustomer(String access_token) throws CustomerLoginException {
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer found_customer = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found!"));
 
         customerRepository.delete(found_customer);
 
-        String response = authenticationClient.removeUser(TOKEN);
-
-        return response;
+        return userClient.delete(access_token).getBody();
     }
 
     // POST - Add Product to Cart with Logged-In User's email
@@ -305,13 +296,11 @@ public class CustomerService {
     }
 
     // GET - Cart of a customer
-    public Cart getCart() throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public Cart getCart(String access_token) throws CustomerLoginException {
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
@@ -366,15 +355,14 @@ public class CustomerService {
     }
 
     // PUT - Update cart with new wishlist item
-    public Cart updateCart_addProduct(CreateWishlistDto createWishlistDto) throws CustomerLoginException {
+    public Cart updateCart_addProduct(String access_token, CreateWishlistDto createWishlistDto) throws CustomerLoginException {
+
         ProductList productByName = productClient.getProductByName(createWishlistDto.getProduct_name());
 
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
@@ -451,13 +439,12 @@ public class CustomerService {
     }
 
     // PUT - Update Cart as per given product's quantity
-    public Cart updateCart_changeQuantity(String product_name, Integer quantity) throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public Cart updateCart_changeQuantity(String access_token, String product_name, Integer quantity) throws CustomerLoginException {
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
@@ -491,13 +478,12 @@ public class CustomerService {
     }
 
     // PUT - Update cart's delivery address as per given address type
-    public Cart updateCart_changeDeliveryAddress(String address_type) throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public Cart updateCart_changeDeliveryAddress(String access_token, String address_type) throws CustomerLoginException {
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
@@ -520,13 +506,12 @@ public class CustomerService {
     }
 
     // PUT - Cart, Update Mode of Payment as provided
-    public Cart updateCart_modeOfPayment(String payment_type) throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public Cart updateCart_modeOfPayment(String access_token, String payment_type) throws CustomerLoginException {
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
@@ -539,13 +524,11 @@ public class CustomerService {
     }
 
     // PUT - Cart, DELETE : Wishlist, Remove a product from cart, recalculate total amount
-    public Cart updateCart_removeProduct(String product_name) throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public Cart updateCart_removeProduct(String access_token, String product_name) throws CustomerLoginException {
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
@@ -568,15 +551,14 @@ public class CustomerService {
     }
 
     // POST - Create new entry for BuyLater as per given payload
-    public BuyLater addBuyLater_newProduct(CreateWishlistDto createWishlistDto) throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public BuyLater addBuyLater_newProduct(String access_token, CreateWishlistDto createWishlistDto) throws CustomerLoginException {
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         ProductList productByName = productClient.getProductByName(createWishlistDto.getProduct_name());
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
@@ -629,11 +611,6 @@ public class CustomerService {
         return new_cart;
     }
 
-    public String logoutCustomer() {
-        TOKEN = "";
-        return "Customer Logged Out!";
-    }
-
     public String isValidRequest(CreateWishlistDto createWishlistDto, ProductList productByName) {
         if(productByName.getProduct_inStock() < createWishlistDto.getProduct_quantity()) {
             return "Requested quantity greater than available stock";
@@ -645,13 +622,11 @@ public class CustomerService {
 
     // Development Phase - Add BuyLater items to Cart for Purchase, recalculate amount
     // PUT - Cart, ADD : BuyLater, Add Buylater items to cart, recalculate total amount
-    public Cart updateCart_addBuyLater() throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public Cart updateCart_addBuyLater(String access_token) throws CustomerLoginException {
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
@@ -732,18 +707,18 @@ public class CustomerService {
 
     // Fetch the List<Orders> from Order-Service
     // Assign them as Customer with List<CustomerOrder>
-    public CustomerOrder fetchOrders_fromOrderService() throws CustomerLoginException {
-        if (userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public CustomerOrder fetchOrders_fromOrderService(String access_token) throws CustomerLoginException {
+        UserProfileResponse userProfile = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfile.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
 
         OrderResponse orderResponse = orderClient.getLastOrder().getBody();
+
+        logger.info("OrderResponse : "  + orderResponse.toString());
 
         CustomerOrder customer_order = CustomerOrder
                 .builder()
@@ -760,11 +735,18 @@ public class CustomerService {
                 .order_date(orderResponse.getOrder_date())
                 .customer(customer_found)
                 .build();
-        return customerOrderRepository.save(customer_order);
+        CustomerOrder customerOrder = customerOrderRepository.save(customer_order);
+
+        return customerOrder;
     }
 
-    public Customer addWishlist_toCustomerOrder(CustomerOrder customerOrder) {
+    public Customer addWishlist_toCustomerOrder(String access_token, CustomerOrder customerOrder) {
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
         Customer customer_found = customerOrder.getCustomer();
+
+        if(!userProfileResponse.getEmail().equals(customer_found.getCustomer_email())) {
+            throw new RuntimeException("Customer Mismatch!");
+        }
 
         List<Wishlist> wishlist = customer_found.getWishlist();
         ArrayList<CustomerPurchase> customerPurchases = new ArrayList<>();
@@ -789,13 +771,12 @@ public class CustomerService {
     }
 
     // Remove cart post order generation
-    public String removeCart_postOrderGeneration() throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public String removeCart_postOrderGeneration(String access_token) throws CustomerLoginException {
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
@@ -806,14 +787,14 @@ public class CustomerService {
         customerRepository.save(customer_found);
         return "Shopping Cart is Empty!";
     }
+
     // Generate Bill for CustomerOrders
-    public Invoice generateInvoice() throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public Invoice generateInvoice(String access_token) throws CustomerLoginException {
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
@@ -834,68 +815,53 @@ public class CustomerService {
 
         Invoice new_invoice = invoiceRepository.save(invoice);
 
+        orderClient.sendEmailInvoice(access_token, new_invoice);
+        orderClient.sendTextMessage(access_token, new_invoice);
+
         return new_invoice;
     }
 
-    public Invoice getInvoice() throws CustomerLoginException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
+    public byte[] getInvoice(String access_token) throws IOException, CustomerLoginException {
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userEmail);
+        customer.setCustomer_email(userProfileResponse.getEmail());
 
         Example<Customer> customerExample = Example.of(customer);
-        Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new RuntimeException("Customer Not Found"));
+        Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new CustomerLoginException("Customer Not Found"));
 
         List<Invoice> invoices = customer_found.getInvoices();
         Invoice last_invoice = invoices.get(invoices.size() - 1);
-        ResponseEntity<String> pdf = pdfGeneratorClient.createPDF();
-        System.out.println(pdf);
-        return last_invoice;
+
+        byte[] bytes = downloadInvoice(last_invoice);
+        return bytes;
     }
 
-    public byte[] downloadInvoice() throws CustomerLoginException, IOException {
-        if(userEmail == null) {
-            throw new CustomerLoginException("Customer Not Logged In");
-        }
-        return pdfGeneratorClient.getPDF().getBody();
+    public byte[] downloadInvoice(Invoice invoice) throws IOException {
+        return pdfGeneratorClient.getPDF(invoice).getBody();
     }
 
-    public void registerOrLoginOAuthUser(String token) throws CustomerPreviouslyLoggedInException {
-        CustomerService.TOKEN = token;
-        userEmail = getUserEmail(token);
-
-        List<Customer> all_customers = customerRepository.findAll();
-
-        for(Customer customer : all_customers) {
-            if(customer.getCustomer_email().equals(userEmail)){
-                throw new CustomerPreviouslyLoggedInException("Login SuccessFull!");
-            }
-        }
-        Customer new_customer = new Customer();
-        new_customer.setCustomer_email(userEmail);
-        customerRepository.save(new_customer);
-    }
-
-    public void generateOTP(String mobile) {
+    public OTPResponse generateOTP(String mobile) {
         String otp = String.valueOf(ThreadLocalRandom.current().nextInt(111111, 999999));
         System.out.println("OTP: " + otp);
-        cachingClient.putOtpAndMobileInCache(otp, mobile);
+        cachingClient.putOtpAndContactMediumInCache(otp, mobile);
 
         SMSRequest smsRequest = SMSRequest
                 .builder()
                 .message(otp)
-                .phone_number(mobile)
+                .phone_number("+91" + mobile)
                 .build();
         messegingClient.sendSMS(smsRequest).getBody();
+
+        return OTPResponse.builder().otp(otp).build();
     }
 
-    public String verifyOTP(String otp) {
-        String mobileByOTPResponse = cachingClient.getMobileByOTP(otp);
+    public AuthResponse verifyOTP(String otp) {
+        String mobileByOTPResponse = cachingClient.getContactMediumByOTP(otp);
         log.info("mobileByOTPResponse: " + mobileByOTPResponse);
         if(mobileByOTPResponse.equals("Not Found")) {
-            return "INVALID OTP";
+            return AuthResponse.builder().access_token(mobileByOTPResponse).build();
         }
         else {
             Optional<Customer> existing_customer = customerRepository.findByCustomerMobile(mobileByOTPResponse);
@@ -903,17 +869,135 @@ public class CustomerService {
 
             if(existing_customer.isPresent()) {
                 email = existing_customer.get().getCustomer_email();
-                userEmail = email;
             }
             else {
                 email = mobileByOTPResponse + "@ecms.com";
-                userEmail = email;
+
                 Customer new_customer = new Customer();
                 new_customer.setCustomer_mobile(mobileByOTPResponse);
                 new_customer.setCustomer_email(email);
                 customerRepository.save(new_customer);
             }
-            return authenticationClient.otpLogin(email);
+            return authenticationClient.otpLogin(email).getBody();
         }
     }
+
+    public void sendOTPToEmail(String access_token, String email) throws CustomerLoginException {
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
+
+        Customer customer = new Customer();
+        customer.setCustomer_email(userProfileResponse.getEmail());
+
+        Example<Customer> customerExample = Example.of(customer);
+        Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new CustomerLoginException("Customer Not Found"));
+
+        String otp = String.valueOf(ThreadLocalRandom.current().nextInt(111111, 999999));
+
+        cachingClient.putOtpAndContactMediumInCache(otp, email);
+
+        emailingClient.sendOTP(email, otp);
+    }
+
+    public Customer verifyEmailOTP(String access_token, String otp) throws CustomerLoginException {
+        String emailByOTP = cachingClient.getContactMediumByOTP(otp);
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
+
+        Customer customer = new Customer();
+        customer.setCustomer_email(userProfileResponse.getEmail());
+
+        Example<Customer> customerExample = Example.of(customer);
+        Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new CustomerLoginException("Customer Not Found"));
+
+        customer_found.setCustomer_email(emailByOTP);
+        customerRepository.save(customer_found);
+
+        UpdateEmailDto updateEmailDto = new UpdateEmailDto();
+        updateEmailDto.setEmail(emailByOTP);
+
+        userClient.update(access_token, updateEmailDto);
+        return customer_found;
+    }
+
+    public void sendOTPToMobile(String access_token, String mobile) throws CustomerLoginException {
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
+
+        Customer customer = new Customer();
+        customer.setCustomer_email(userProfileResponse.getEmail());
+
+        Example<Customer> customerExample = Example.of(customer);
+        Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new CustomerLoginException("Customer Not Found"));
+
+        String otp = String.valueOf(ThreadLocalRandom.current().nextInt(111111, 999999));
+
+        logger.info("OTP: " + otp);
+
+        cachingClient.putOtpAndContactMediumInCache(otp, mobile);
+
+        SMSRequest smsRequest = SMSRequest
+                .builder()
+                .message(otp)
+                .phone_number("+91" + mobile)
+                .build();
+
+        // messegingClient.sendSMS(smsRequest);
+    }
+
+    public Customer verifyMobileOTP(String access_token, String otp) throws CustomerLoginException {
+        String mobileByOTP = cachingClient.getContactMediumByOTP(otp);
+
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(access_token).getBody();
+
+        Customer customer = new Customer();
+        customer.setCustomer_email(userProfileResponse.getEmail());
+
+        Example<Customer> customerExample = Example.of(customer);
+        Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new CustomerLoginException("Customer Not Found"));
+
+        customer_found.setCustomer_mobile(mobileByOTP);
+        customer_found.setCustomer_email(mobileByOTP + "@ecms.com");
+        Customer save = customerRepository.save(customer_found);
+
+        UpdateEmailDto updateEmailDto = new UpdateEmailDto();
+        updateEmailDto.setEmail(mobileByOTP + "@ecms.com");
+        userClient.update(access_token, updateEmailDto);
+
+        return save;
+    }
+
+    public Customer changePassword(String accessToken, UpdatePasswordDto updatePasswordDto) throws CustomerLoginException {
+        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(accessToken).getBody();
+
+        Customer customer = new Customer();
+        customer.setCustomer_email(userProfileResponse.getEmail());
+
+        Example<Customer> customerExample = Example.of(customer);
+        Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new CustomerLoginException("Customer Not Found"));
+
+
+        userClient.update(accessToken, updatePasswordDto);
+
+        return customer_found;
+    }
+
+
+//    public AuthResponse registerOrLoginOAuthUser(String token) throws CustomerPreviouslyLoggedInException {
+//
+//        String oauthLoggedInUserEmail = getUserEmail(token);
+//
+//        List<Customer> all_customers = customerRepository.findAll();
+//
+//        for(Customer customer : all_customers) {
+//            if(customer.getCustomer_email().equals(oauthLoggedInUserEmail)){
+//                throw new CustomerPreviouslyLoggedInException("Login SuccessFull!");
+//            }
+//        }
+//
+//        Customer new_customer = new Customer();
+//        new_customer.setCustomer_email(userEmail);
+//        customerRepository.save(new_customer);
+//
+//        AuthResponse authResponse = AuthResponse.builder().token(token).build();
+//        return authResponse;
+//    }
 }

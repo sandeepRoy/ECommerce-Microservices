@@ -1,3 +1,4 @@
+cd .. &&
 cd Invoicing && 
 mvn clean install &&
 cd target

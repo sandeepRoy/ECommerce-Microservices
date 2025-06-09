@@ -16,7 +16,7 @@ public class CacheConfiguration {
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
         RedisCacheConfiguration cacheConfiguration = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(5))  // 5-minute TTL for OTPs
+                .entryTtl(Duration.ofMinutes(180))  // 5-minute TTL for OTPs
                 .disableCachingNullValues()
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer())

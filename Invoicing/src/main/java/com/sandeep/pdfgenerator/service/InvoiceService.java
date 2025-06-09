@@ -32,11 +32,12 @@ public class InvoiceService {
     @Autowired
     public CustomerInvoiceClient customerInvoiceClient;
 
-    public byte[] getPDF() throws IOException {
+    public byte[] getPDF(InvoiceResponse invoiceResponse) throws IOException {
+        logger.info("Reached /invoicing/get-invoice -> getPDF()");
 
         PdfFont customFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
 
-        InvoiceResponse invoiceResponse = customerInvoiceClient.get_invoice().getBody();
+        // InvoiceResponse invoiceResponse = customerInvoiceClient.get_invoice(access_token).getBody();
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
@@ -129,9 +130,5 @@ public class InvoiceService {
         document.close();
 
         return byteArrayOutputStream.toByteArray();
-    }
-
-    public String createPDF() {
-        return "Not Done Yet";
     }
 }

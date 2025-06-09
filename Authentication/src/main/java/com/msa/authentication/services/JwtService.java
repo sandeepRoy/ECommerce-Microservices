@@ -1,10 +1,14 @@
 package com.msa.authentication.services;
 
+import com.msa.authentication.entities.CustomUserDetails;
+import com.msa.authentication.entities.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -12,17 +16,39 @@ import java.security.Key;
 import java.util.function.Function;
 import java.util.*;
 
+@Slf4j
 @Service
 public class JwtService {
 
-    public static String token;
-    public static final String SECRET_KEY = "cKNpYuq49z28DN+sH1FpDVLWX4vMd12QGWHx62oj3BGrQ4uNCr4Yxm5St3/P5dMUgVt3aK/0BK+zuqnQHMYZ1xAUMTpV09YCXimbAP2SYkUlZqI1XbIT5Idxsdu41xZ+VZAH3h6EZ+2WdrzezxJJ30URiyHu7bgGMPwoQjxidd5HR0uv7BVhD9xxEkI4jgWaZl0i9uKAZSqFfTaCTKCUzbK/COBQbj1SUQ7qT30XBTSdla+lK04wLAaJeiyGoXxnNFfMlS20uzmBJba8AdHxpmMmajptR8BdAUf+2HaX2MSHCzZRHXNwuW7mxFbDrMl0JpCAABBSMd7E51GaDnA1Vjcao7rzFuLVCXzkNt8P4F4";
-    public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+    @Value("${jwt.access-secret}")
+    private String access_key;
+
+    @Value("${jwt.refresh-secret}")
+    private String refresh_key;
+
+    @Value("${jwt.access-expiry}")
+    private long access_expiryDate;
+
+    @Value("${jwt.refresh-expiry}")
+    private long refresh_expiryDate;
+
+    public Key getSignInKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(access_key);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public Key getRefreshSignInKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(refresh_key);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
+        return claimsResolver.apply(claims);
+    }
+
+    public <T> T extractRefreshClaim(String token, Function<Claims, T> claimsResolver) {
+        Claims claims = extractAllRefreshClaims(token);
         return claimsResolver.apply(claims);
     }
 
@@ -35,32 +61,67 @@ public class JwtService {
                 .getBody();
     }
 
-    public Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
-        return Keys.hmacShaKeyFor(keyBytes);
+    public Claims extractAllRefreshClaims(String token) {
+        return Jwts
+                .parserBuilder()
+                .setSigningKey(getRefreshSignInKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-        String generatedToken = Jwts
-                .builder()
+    public String extractUserId(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    public String extractUserIdFromRefreshToken(String token) {
+        return extractRefreshClaim(token, Claims::getSubject);
+    }
+
+    public String generateAccessToken(Map<String, Object> extraClaims, CustomUserDetails userDetails) {
+        User user = ((CustomUserDetails) userDetails).getUser();
+
+        return Jwts.builder()
                 .setClaims(extraClaims)
-                .setSubject(userDetails.getUsername())
+                .claim("email", user.getEmail())
+                .setSubject(String.valueOf(user.getId()))
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 24))
+                .setExpiration(new Date(System.currentTimeMillis() + access_expiryDate))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
-        token = generatedToken;
-        return generatedToken;
     }
 
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+
+    public String generateAccessToken(CustomUserDetails userDetails) {
+        return generateAccessToken(new HashMap<>(), userDetails);
+    }
+
+    public String generateRefreshToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        User user = ((CustomUserDetails) userDetails).getUser();
+
+        String refresh_token = Jwts
+                .builder()
+                .setClaims(extraClaims)
+                .claim("email", user.getEmail())
+                .setSubject(String.valueOf(user.getId()))
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + refresh_expiryDate))
+                .signWith(getRefreshSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+
+        return refresh_token;
+    }
+
+    public String generateRefreshToken(UserDetails userDetails) {
+        return generateRefreshToken(new HashMap<>(), userDetails);
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        final String userId = extractUserId(token);
+        User user = ((CustomUserDetails) userDetails).getUser();
+        return (userId.equals(String.valueOf(user.getId())) && !isTokenExpired(token));
     }
+
 
     public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
@@ -68,5 +129,22 @@ public class JwtService {
 
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
+    }
+
+
+    public boolean isRefreshTokenValid(String token, UserDetails userDetails) {
+        String userIdFormToken = extractRefreshClaim(token, Claims::getSubject);
+
+        Integer id = ((User) userDetails).getId();
+
+        log.info("JwtSercice.userIdFormToken = {}", userIdFormToken);
+
+        log.info("JwtService.user.getId()= {}", id);
+
+        return userIdFormToken.equals(String.valueOf(id)) && !isRefreshTokenExpired(token);
+    }
+
+    public boolean isRefreshTokenExpired(String token) {
+        return extractRefreshClaim(token, Claims::getExpiration).before(new Date());
     }
 }

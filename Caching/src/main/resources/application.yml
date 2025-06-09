@@ -1,6 +1,6 @@
 spring:
   application:
-    name: "Caching"
+    name: "caching"
   data:
     redis:
       host: localhost

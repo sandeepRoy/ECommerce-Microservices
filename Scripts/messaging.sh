@@ -1,3 +1,4 @@
+cd .. &&
 cd Messaging && 
 mvn clean install &&
 cd target

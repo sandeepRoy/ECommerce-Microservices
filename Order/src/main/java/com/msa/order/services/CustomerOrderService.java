@@ -87,17 +87,15 @@ public class CustomerOrderService {
 
     }
 
-    public String sendEmaill() throws IOException {
+    public String sendEmaill(String access_token, InvoiceResponse invoiceResponse) throws IOException {
 
-        logger.info("sendEmail() called");
-        // get invoice.json & invoice.pdf from customer
-        InvoiceResponse invoiceResponse = customerClient.get_invoice().getBody(); logger.info("Invoice.json -- " + invoiceResponse);
-        byte[] invoicePDF = customerClient.download_invoice().getBody(); logger.info("Invoice.pdf -- " + invoicePDF);
+        byte[] invoicePDF = customerClient.get_invoice(access_token).getBody();
 
         String customerEmail = invoiceResponse.getCustomerOrder().getCustomer_email(); //to
         String invoiceNumber = invoiceResponse.getInvoice_number(); //subject
 
         String subject = ""; // body
+
         ArrayList<CustomerPurchase> purchaseList = invoiceResponse.getCustomerOrder().getCustomer_purchase();
         for(CustomerPurchase customerPurchase : purchaseList) {
             subject += customerPurchase.getProduct_name() + "\t" + customerPurchase.getProduct_price() + "\t" + customerPurchase.getProduct_quantity() + "\n";
@@ -113,8 +111,7 @@ public class CustomerOrderService {
         return "Email Sent!";
     }
 
-    public String sendSMS() {
-        InvoiceResponse invoiceResponse = customerClient.get_invoice().getBody();
+    public String sendSMS(String access_token, InvoiceResponse invoiceResponse) {
 
         logger.info("Invoice Response : " + invoiceResponse);
 
