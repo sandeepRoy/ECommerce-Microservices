@@ -38,3 +38,4 @@ public class CustomOAuthSucessHandler implements AuthenticationSuccessHandler {
         return List.of(name, email, password);
     }
 }
+

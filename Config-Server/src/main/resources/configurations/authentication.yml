@@ -34,10 +34,10 @@ spring:
             client-secret: 
           google:
             client-id: 
-            client-secret:
+            client-secret: 
 
 jwt:
   access-secret: 
   refresh-secret: 
-  access-expiry: 
-  refresh-expiry: 
+  access-expiry: 900000
+  refresh-expiry: 604800000
