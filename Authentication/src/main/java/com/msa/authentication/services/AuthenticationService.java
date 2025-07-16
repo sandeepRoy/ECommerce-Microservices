@@ -131,9 +131,17 @@ public class AuthenticationService {
     public User changePassword(Authentication authentication, ChangePasswordRequest changePasswordRequest) {
         String user_email = authentication.getName();
         User user = userRepository.findUserByEmail(user_email).orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
-        user.setPassword(passwordEncoder.encode(changePasswordRequest.getPassword()));
-        userRepository.save(user);
-        return user;
+
+        String encoded_old_password = user.getPassword();
+        boolean isPasswordMatches = passwordEncoder.matches(changePasswordRequest.getOld_password(), encoded_old_password);
+        if(isPasswordMatches == true) {
+            user.setPassword(passwordEncoder.encode(changePasswordRequest.getNew_password()));
+            userRepository.save(user);
+            return user;
+        }
+        else {
+            throw new RuntimeException("Provided Old Password Doesn't matches with existing!");
+        }
     }
 
     public AuthResponse refreshAccessToken(String refresh_token) {
