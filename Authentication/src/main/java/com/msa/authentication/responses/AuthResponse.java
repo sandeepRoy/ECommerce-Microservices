@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class AuthResponse {
     String access_token;
     String refresh_token;
+    Boolean password_expired;
 }

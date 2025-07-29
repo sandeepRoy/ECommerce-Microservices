@@ -50,12 +50,13 @@ public class AuthenticationService {
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .role(Role.USER)
                 .build();
+        user.setPasswordExpirationDate(LocalDateTime.now().plusDays(90));       
         User save = userRepository.save(user);
         CustomUserDetails customUserDetails = new CustomUserDetails(save);
         String access_token = jwtService.generateAccessToken(customUserDetails);
         String refresh_token = jwtService.generateRefreshToken(customUserDetails);
 
-        AuthResponse authResponse = AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).build();
+        AuthResponse authResponse = AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).password_expired(Boolean.FALSE).build();
         return authResponse;
     }
 
@@ -64,6 +65,11 @@ public class AuthenticationService {
                 new UsernamePasswordAuthenticationToken(authenticateRequest.getEmail(), authenticateRequest.getPassword())
         );
         User user = userRepository.findUserByEmail(authenticateRequest.getEmail()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        
+        if(user.getPasswordExpirationDate().isBefore(LocalDateTime.now())) {
+            AuthResponse authResponse = AuthResponse.builder().access_token("NOT_GENERATED").refresh_token("NOT_GENERATED").password_expired(Boolean.TRUE).build();
+            return authResponse;
+        }
 
         CustomUserDetails customUserDetails = new CustomUserDetails(user);
         String access_token = jwtService.generateAccessToken(customUserDetails);
@@ -76,7 +82,7 @@ public class AuthenticationService {
     public AuthResponse otpLogin(String email) {
         Optional<User> userByEmail = userRepository.findUserByEmail(email);
         User user;
-        if(userByEmail.isPresent()) {
+        if(userByEmail.isPresent() && userByEmail.get().getPasswordExpirationDate() == LocalDateTime.now()) {
             user = userByEmail.get();
         }
         else {
