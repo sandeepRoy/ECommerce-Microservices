@@ -5,10 +5,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 
@@ -30,11 +33,13 @@ public class User implements UserDetails {
     private String email;
 
     private String password;
-    
-    private LocalDateTime passwordExpirationDate;
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    private LocalDateTime passwordExpiryDate;
+
+    private LocalDateTime passwordChangedAt;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -63,7 +68,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;
+        return passwordExpiryDate == null || LocalDateTime.now().isBefore(passwordExpiryDate);
     }
 
     @Override

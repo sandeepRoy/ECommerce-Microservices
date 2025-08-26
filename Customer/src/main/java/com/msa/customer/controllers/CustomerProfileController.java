@@ -9,6 +9,7 @@ import com.msa.customer.model.BuyLater;
 import com.msa.customer.model.Cart;
 import com.msa.customer.model.Customer;
 import com.msa.customer.model.CustomerOrder;
+import com.msa.customer.responses.AuthResponse;
 import com.msa.customer.services.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -152,13 +153,42 @@ public class CustomerProfileController {
         return new  ResponseEntity<>(customer, HttpStatus.OK);
     }
 
-    @PutMapping("/change-password")
-    public ResponseEntity<Customer> changePassword(
-            @RequestHeader("Authorization") String access_token,
+    @PutMapping("/change-expired_password")
+    public ResponseEntity<AuthResponse> changePassword(
             @RequestBody UpdatePasswordDto updatePasswordDto
     ) throws CustomerLoginException {
-        Customer customer = customerService.changePassword(access_token, updatePasswordDto);
-        return new ResponseEntity<>(customer, HttpStatus.OK);
+        AuthResponse authResponse = customerService.changePassword(updatePasswordDto);
+        return new ResponseEntity<>(authResponse, HttpStatus.OK);
     }
 }
 
+/*
+Here are the checklists that should pass -
+
+1. /user/register - OK
+
+2. /user/login - access & refresh token
+
+3. /customer/getDetails(access token) - OK
+
+WAIT FOR 10 minutes :
+
+4. /customer/getDetails(same access token as step 3) - NOT OK
+
+5. /user/refresh - gets new access & refresh token
+
+6. /customer/getDetails(new access_token) - OK
+
+WAIT FOR 20 minutes :
+
+7. /customer/getDetails(same access token as step 6) - NOT OK
+
+8. /user/refresh - NOT OK, Password expired
+
+9. /customer/change_expired_password(takes : user_name, old & new password) - goes to /user/change_expired_password - changes the password and issues new access & refresh token
+   [access_token didn't worked on /customer/getDetails]
+
+10. /customer/login(with new password) - get access & refresh token
+
+11. /customer/getDetails(new access token as step 10) - OK
+*/

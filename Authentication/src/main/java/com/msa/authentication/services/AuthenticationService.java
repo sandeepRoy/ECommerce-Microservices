@@ -9,6 +9,7 @@ import com.msa.authentication.responses.AuthResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -16,6 +17,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -25,6 +27,9 @@ import java.util.logging.Logger;
 public class AuthenticationService {
 
     public Logger logger = Logger.getLogger(AuthenticationService.class.getName());
+
+    @Value("${user.password-expiry}")
+    private Integer password_expiry_in_mins;
 
     @Autowired
     public UserRepository userRepository;
@@ -50,13 +55,16 @@ public class AuthenticationService {
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .role(Role.USER)
                 .build();
-        user.setPasswordExpirationDate(LocalDateTime.now().plusDays(90));       
+
+        user.setPasswordChangedAt(LocalDateTime.now());
+        user.setPasswordExpiryDate(LocalDateTime.now().plusMinutes(30));
+
         User save = userRepository.save(user);
         CustomUserDetails customUserDetails = new CustomUserDetails(save);
         String access_token = jwtService.generateAccessToken(customUserDetails);
         String refresh_token = jwtService.generateRefreshToken(customUserDetails);
 
-        AuthResponse authResponse = AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).password_expired(Boolean.FALSE).build();
+        AuthResponse authResponse = AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).build();
         return authResponse;
     }
 
@@ -65,9 +73,9 @@ public class AuthenticationService {
                 new UsernamePasswordAuthenticationToken(authenticateRequest.getEmail(), authenticateRequest.getPassword())
         );
         User user = userRepository.findUserByEmail(authenticateRequest.getEmail()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        
-        if(user.getPasswordExpirationDate().isBefore(LocalDateTime.now())) {
-            AuthResponse authResponse = AuthResponse.builder().access_token("NOT_GENERATED").refresh_token("NOT_GENERATED").password_expired(Boolean.TRUE).build();
+
+        if(user.getPasswordExpiryDate().isBefore(LocalDateTime.now())) {
+            AuthResponse authResponse = AuthResponse.builder().access_token("NOT_GENERATED").refresh_token("NOT_GENERATED").message("PASSWORD_EXPIRED").build();
             return authResponse;
         }
 
@@ -82,7 +90,7 @@ public class AuthenticationService {
     public AuthResponse otpLogin(String email) {
         Optional<User> userByEmail = userRepository.findUserByEmail(email);
         User user;
-        if(userByEmail.isPresent() && userByEmail.get().getPasswordExpirationDate() == LocalDateTime.now()) {
+        if(userByEmail.isPresent() /*&& userByEmail.get().getPasswordExpirationDate() == LocalDateTime.now()*/) {
             user = userByEmail.get();
         }
         else {
@@ -107,6 +115,7 @@ public class AuthenticationService {
     public String remove(Authentication authentication) {
         String user_email = authentication.getName();
         User userFound = userRepository.findUserByEmail(user_email).orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
+
         userRepository.delete(userFound);
         return "User Deleted";
     }
@@ -134,26 +143,10 @@ public class AuthenticationService {
         return user;
     }
 
-    public User changePassword(Authentication authentication, ChangePasswordRequest changePasswordRequest) {
-        String user_email = authentication.getName();
-        User user = userRepository.findUserByEmail(user_email).orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
-
-        String encoded_old_password = user.getPassword();
-        boolean isPasswordMatches = passwordEncoder.matches(changePasswordRequest.getOld_password(), encoded_old_password);
-        if(isPasswordMatches == true) {
-            user.setPassword(passwordEncoder.encode(changePasswordRequest.getNew_password()));
-            userRepository.save(user);
-            return user;
-        }
-        else {
-            throw new RuntimeException("Provided Old Password Doesn't matches with existing!");
-        }
-    }
-
     public AuthResponse refreshAccessToken(String refresh_token) {
         if(tokenBlacklistService.isRefreshTokenBlacklisted(refresh_token) == true) {
             logger.warning("Refresh token has been blacklisted");
-            return AuthResponse.builder().access_token("TOKEN BLACKLISTED").refresh_token("TOKEN BLACKLISTED").build();
+            return AuthResponse.builder().access_token("TOKEN BLACKLISTED").refresh_token("TOKEN BLACKLISTED").message("BOTH TOKENS EXPIRED").build();
         }
         String userId = jwtService.extractUserIdFromRefreshToken(refresh_token); logger.info("AuthenticationService.Logged In User ID: " + userId);
         User user = userRepository
@@ -161,17 +154,35 @@ public class AuthenticationService {
                 .orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
         log.info("AuthenticationService.Logged In User: " +  user.toString());
 
+        if(!jwtService.isRefreshTokenValid(refresh_token, user)) {
+            return AuthResponse.builder().access_token("UNAUTHORIZED").refresh_token("UNAUTHORIZED").message("INVALID TOKEN").build();
+        }
+
         CustomUserDetails customUserDetails = new CustomUserDetails(user);
 
-        if(jwtService.isRefreshTokenValid(refresh_token, user)) {
-            logger.warning("Refresh token has been validated");
-            String access_token = jwtService.generateAccessToken(customUserDetails);
-            return AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).build();
+        String access_token = jwtService.generateAccessToken(customUserDetails);
+
+        return AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).message("TOKENS REFRESHED").build();
+    }
+
+    public AuthResponse changePasswordAfterExpiry(ChangePasswordRequest changePasswordRequest) {
+        User user = userRepository.findUserByEmail(changePasswordRequest.getUser_name()).orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
+
+        if(!passwordEncoder.matches(changePasswordRequest.getOld_password(), user.getPassword())) {
+            return AuthResponse.builder().access_token("NOT_GENERATED").refresh_token("NOT_GENERATED").message("PASSWORD MISMATCH").build();
         }
-        else {
-            logger.warning("Refresh token hasn't been validated");
-            return AuthResponse.builder().access_token("Unauthorized Access!").build();
-        }
+
+        user.setPassword(passwordEncoder.encode(changePasswordRequest.getNew_password()));
+        user.setPasswordChangedAt(LocalDateTime.now());
+        user.setPasswordExpiryDate(LocalDateTime.now().plusMinutes(30));
+        userRepository.save(user);
+
+        AuthenticateRequest authenticateRequest = new AuthenticateRequest(changePasswordRequest.getUser_name(), changePasswordRequest.getNew_password());
+
+        AuthResponse authResponse = authenticate(authenticateRequest);
+        authResponse.setMessage("PASSWORD REFRESHED");
+
+        return authResponse;
     }
 }
 

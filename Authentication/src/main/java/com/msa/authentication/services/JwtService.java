@@ -13,6 +13,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.function.Function;
 import java.util.*;
 
@@ -119,7 +121,43 @@ public class JwtService {
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String userId = extractUserId(token);
         User user = ((CustomUserDetails) userDetails).getUser();
-        return (userId.equals(String.valueOf(user.getId())) && !isTokenExpired(token));
+
+        if (!String.valueOf(user.getId()).equals(userId)) { return false; }
+        if (isTokenExpired(token)) { return false; }
+
+        // block if password expired
+        if(user.getPasswordExpiryDate() != null && LocalDateTime.now().isAfter(user.getPasswordExpiryDate())) {
+            return false;
+        }
+
+        // block tokens issued before last password change
+        Date issuedAt = extractIssuedAt(token);
+        if(user.getPasswordChangedAt() != null && issuedAt != null) {
+            if(issuedAt.toInstant().isBefore(user.getPasswordChangedAt().atZone(ZoneId.systemDefault()).toInstant())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean isRefreshTokenValid(String token, UserDetails userDetails) {
+        String subject = extractRefreshClaim(token, Claims::getSubject);
+        User user = (User) userDetails;
+
+        if (!String.valueOf(user.getId()).equals(subject)) return false;
+        if (isRefreshTokenExpired(token)) return false;
+
+        // Same two rules for refresh
+        if (user.getPasswordExpiryDate() != null && LocalDateTime.now().isAfter(user.getPasswordExpiryDate())) {
+            return false;
+        }
+        Date iat = extractRefreshIssuedAt(token);
+        if (user.getPasswordChangedAt() != null && iat != null) {
+            if (iat.toInstant().isBefore(user.getPasswordChangedAt().atZone(ZoneId.systemDefault()).toInstant())) {
+                return false;
+            }
+        }
+        return true;
     }
 
 
@@ -132,19 +170,19 @@ public class JwtService {
     }
 
 
-    public boolean isRefreshTokenValid(String token, UserDetails userDetails) {
-        String userIdFormToken = extractRefreshClaim(token, Claims::getSubject);
 
-        Integer id = ((User) userDetails).getId();
-
-        log.info("JwtSercice.userIdFormToken = {}", userIdFormToken);
-
-        log.info("JwtService.user.getId()= {}", id);
-
-        return userIdFormToken.equals(String.valueOf(id)) && !isRefreshTokenExpired(token);
-    }
 
     public boolean isRefreshTokenExpired(String token) {
         return extractRefreshClaim(token, Claims::getExpiration).before(new Date());
     }
+
+    public Date extractIssuedAt(String token) {
+        return extractClaim(token, Claims::getIssuedAt);
+    }
+
+    public Date extractRefreshIssuedAt(String token) {
+        return extractRefreshClaim(token, Claims::getIssuedAt);
+    }
+
+
 }

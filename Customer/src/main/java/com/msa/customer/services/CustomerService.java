@@ -965,19 +965,16 @@ public class CustomerService {
         return save;
     }
 
-    public Customer changePassword(String accessToken, UpdatePasswordDto updatePasswordDto) throws CustomerLoginException {
-        UserProfileResponse userProfileResponse = userClient.getLoggedInUser(accessToken).getBody();
+    public AuthResponse changePassword(UpdatePasswordDto updatePasswordDto) throws CustomerLoginException {
 
         Customer customer = new Customer();
-        customer.setCustomer_email(userProfileResponse.getEmail());
+        customer.setCustomer_email(updatePasswordDto.getUser_name());
 
         Example<Customer> customerExample = Example.of(customer);
         Customer customer_found = customerRepository.findOne(customerExample).orElseThrow(() -> new CustomerLoginException("Customer Not Found"));
 
 
-        userClient.update(accessToken, updatePasswordDto);
-
-        return customer_found;
+        return userClient.update(updatePasswordDto).getBody();
     }
 
 

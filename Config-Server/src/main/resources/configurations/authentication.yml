@@ -39,5 +39,9 @@ spring:
 jwt:
   access-secret: 
   refresh-secret: 
-  access-expiry: 900000
-  refresh-expiry: 604800000
+  access-expiry: 600000     # 10 minutes
+  refresh-expiry: 604800000 # 7 days
+
+user:
+  password-expiry: 1800000  # 30 minutes
+

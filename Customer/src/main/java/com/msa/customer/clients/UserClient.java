@@ -3,6 +3,7 @@ package com.msa.customer.clients;
 import com.msa.customer.dtos.UpdateEmailDto;
 import com.msa.customer.dtos.UpdateNameDto;
 import com.msa.customer.dtos.UpdatePasswordDto;
+import com.msa.customer.responses.AuthResponse;
 import com.msa.customer.responses.UserProfileResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
@@ -23,8 +24,8 @@ public interface UserClient {
     @PutMapping("/update-email-and-password")
     public ResponseEntity<UserProfileResponse> update(@RequestHeader("Authorization") String token, @RequestBody UpdateEmailDto updateEmailDto);
 
-    @PutMapping("/update-password")
-    public ResponseEntity<UserProfileResponse> update(@RequestHeader("Authorization") String token, @RequestBody UpdatePasswordDto updatePasswordDto);
+    @PutMapping("/change_expired_password")
+    public ResponseEntity<AuthResponse> update(@RequestBody UpdatePasswordDto updatePasswordDto);
 
     @DeleteMapping("/remove")
     public ResponseEntity<String> delete(@RequestHeader("Authorization") String token);

@@ -1,5 +1,7 @@
 package com.msa.authentication.configurations;
 
+import com.msa.authentication.entities.CustomUserDetails;
+import com.msa.authentication.entities.User;
 import com.msa.authentication.services.CustomUserDetailsService;
 import com.msa.authentication.services.JwtService;
 import com.msa.authentication.services.TokenBlacklistService;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
@@ -52,10 +55,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (tokenBlacklistService.isAccessTokenBlacklisted(jwt)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Access token is expired and blacklisted!");
             return;
         }
 
-        userId = jwtService.extractUserId(jwt);
+        try {
+            userId = jwtService.extractUserId(jwt);
+        } catch (Exception exception) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Invalid Access token provided!");
+            return;
+        }
+
+
 
         if(userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserById(userId);
@@ -70,6 +82,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 );
 
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+            }
+            else {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Access token expired or invalid, Please refresh/login again!");
+                return;
             }
         }
         filterChain.doFilter(request, response);
