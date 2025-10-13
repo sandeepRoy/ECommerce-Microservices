@@ -39,9 +39,9 @@ spring:
 jwt:
   access-secret: 
   refresh-secret: 
-  access-expiry: 600000     # 10 minutes
-  refresh-expiry: 604800000 # 7 days
+  access-expiry: 600000     # 10 minutes after access expiry should be able to generate new access using not expired refresh
+  refresh-expiry: 1200000   # 20 minutes after refresh expiry login required if password not expired to get the new access & refresh
 
 user:
-  password-expiry: 1800000  # 30 minutes
+  password-expiry: 1800000  # 30 minutes after password expiry no access or refresh re issue, have to change the password
 

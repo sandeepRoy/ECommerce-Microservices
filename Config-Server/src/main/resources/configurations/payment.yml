@@ -13,8 +13,8 @@ spring:
   # Local Database
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/ecms_local
-    username: root
-    password: Online#9900
+    username: 
+    password: 
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Docker Datasource

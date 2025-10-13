@@ -29,7 +29,7 @@ public class AuthenticationService {
     public Logger logger = Logger.getLogger(AuthenticationService.class.getName());
 
     @Value("${user.password-expiry}")
-    private Integer password_expiry_in_mins;
+    public String passwordExpiry;
 
     @Autowired
     public UserRepository userRepository;
@@ -64,7 +64,7 @@ public class AuthenticationService {
         String access_token = jwtService.generateAccessToken(customUserDetails);
         String refresh_token = jwtService.generateRefreshToken(customUserDetails);
 
-        AuthResponse authResponse = AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).build();
+        AuthResponse authResponse = AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).message("PASSWORD_ISSUED").build();
         return authResponse;
     }
 
@@ -90,7 +90,7 @@ public class AuthenticationService {
     public AuthResponse otpLogin(String email) {
         Optional<User> userByEmail = userRepository.findUserByEmail(email);
         User user;
-        if(userByEmail.isPresent() /*&& userByEmail.get().getPasswordExpirationDate() == LocalDateTime.now()*/) {
+        if(userByEmail.isPresent() && userByEmail.get().getPasswordExpiryDate() == LocalDateTime.now()) {
             user = userByEmail.get();
         }
         else {
@@ -101,6 +101,8 @@ public class AuthenticationService {
                     .firstname("not_provided")
                     .lastname("not_provided")
                     .role(Role.USER)
+                    .passwordChangedAt(LocalDateTime.now())
+                    .passwordExpiryDate(LocalDateTime.now().plusMinutes(30))
                     .build();
             userRepository.save(user);
         }
@@ -180,7 +182,7 @@ public class AuthenticationService {
         AuthenticateRequest authenticateRequest = new AuthenticateRequest(changePasswordRequest.getUser_name(), changePasswordRequest.getNew_password());
 
         AuthResponse authResponse = authenticate(authenticateRequest);
-        authResponse.setMessage("PASSWORD REFRESHED");
+        authResponse.setMessage("PASSWORD CHANGED");
 
         return authResponse;
     }

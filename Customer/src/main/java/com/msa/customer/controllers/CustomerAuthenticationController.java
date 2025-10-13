@@ -48,16 +48,22 @@ public class CustomerAuthenticationController {
     }
 
     @GetMapping("/social-callback")
-    public ResponseEntity<AuthResponse> socialCallback(@CookieValue(name = "JWT_TOKEN", required = false) String token) throws CustomerPreviouslyLoggedInException {
-        if(token == null) {
+    public ResponseEntity<AuthResponse> socialCallback(
+            @CookieValue(name = "ACCESS_TOKEN", required = false) String access_token,
+            @CookieValue(name = "REFRESH_TOKEN", required = false) String refresh_token
+    ) throws CustomerPreviouslyLoggedInException {
+        if(access_token == null || refresh_token == null) {
             return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
         }
-        AuthResponse authResponse = AuthResponse.builder().access_token(token).build();
+        AuthResponse authResponse = AuthResponse.builder().access_token(access_token).refresh_token(refresh_token).build();
         return new ResponseEntity<>(authResponse, HttpStatus.OK);
     }
 
     @GetMapping("/get-otp")
     public ResponseEntity<OTPResponse> getOTP(@RequestParam(required = false) String mobile, @RequestParam(required = false) String emailId) {
+        // need a check for mobile : email if present
+        // need to send OTP to email
+        // need a service method for OTP validation, user & customer creation
         OTPResponse otpResponse = customerService.generateOTP(mobile);
         return new ResponseEntity<>(otpResponse, HttpStatus.OK);
     }

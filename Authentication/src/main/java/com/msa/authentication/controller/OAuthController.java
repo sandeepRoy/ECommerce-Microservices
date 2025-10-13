@@ -32,13 +32,20 @@ public class OAuthController {
     public ResponseEntity<AuthResponse> loginSuccess(HttpServletResponse httpServletResponse) throws IOException {
         AuthResponse authResponse = oAuthService.registerAndLoginOAuthUser();
 
-        Cookie jwtCookie = new Cookie("JWT_TOKEN", authResponse.getAccess_token());
-        jwtCookie.setHttpOnly(true);
-        jwtCookie.setSecure(true);
-        jwtCookie.setPath("/");
-        jwtCookie.setMaxAge(60 * 60 * 24);
+        Cookie accessTokenCookie = new Cookie("ACCESS_TOKEN", authResponse.getAccess_token());
+        accessTokenCookie.setHttpOnly(true);
+        accessTokenCookie.setSecure(true);
+        accessTokenCookie.setPath("/");
+        accessTokenCookie.setMaxAge(60 * 60 * 24);
 
-        httpServletResponse.addCookie(jwtCookie);
+        Cookie refreshTokenCookie = new Cookie("REFRESH_TOKEN", authResponse.getRefresh_token());
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(true);
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge(60 * 60 * 24);
+
+        httpServletResponse.addCookie(accessTokenCookie);
+        httpServletResponse.addCookie(refreshTokenCookie);
         httpServletResponse.sendRedirect("http://localhost:8087/customer/auth/social-callback");
 
         return new ResponseEntity<>(authResponse, HttpStatus.OK); // try loggin
