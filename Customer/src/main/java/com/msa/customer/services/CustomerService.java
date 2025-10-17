@@ -39,8 +39,6 @@ public class CustomerService {
 
     private static Logger logger = Logger.getLogger(CustomerService.class.getName());
 
-    @Value("${jwt.secret}")
-    private String SECRET_KEY;
     public static final String TOKEN_PREFIX = "Bearer ";
     private static String userEmail;
     private static String userName;

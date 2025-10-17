@@ -1,0 +1,10 @@
+server:
+  port: ${server.port}
+
+spring:
+  data:
+    redis:
+      host: ${spring-data-redis-host}
+      port: ${spring-data-redis-port}
+  cache:
+    type: ${spring-cache-type}

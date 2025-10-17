@@ -12,30 +12,31 @@ spring:
 
   # Local Database
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/ecms_local
-    username: 
-    password: 
+    url: ${database-url}
+    username: ${database-username}
+    password: ${database-password}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Docker Datasource
 #  datasource:
-#    url: jdbc:mysql://mysql:3306/ecommerce
-#    username: ecms
-#    password: ecms
+#    url: ${database-url}
+#    username: ${database-username}
+#    password: ${database-password}
 #    driver-class-name: com.mysql.cj.jdbc.Driver
+
 
   kafka:
     producer:
-      bootstrap-servers: localhost:9092
-      group_id: ecommerce
+      bootstrap-servers: ${kafka-producer-bootstrap-servers}
+      group_id: ${kafka-producer-group-id}
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: '*'
 
     consumer:
-      bootstrap-servers: localhost:9092
-      group_id: ecommerce
+      bootstrap-servers: ${kafka-consumer-bootstrap-server}
+      group_id: ${kafka-consumer-group-id}
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
@@ -44,6 +45,6 @@ spring:
 
 razorpay:
   key:
-    id: 
+    id: ${razorpay-key-id}
   secret:
-    key: 
+    key: ${razorpay-secret-key}

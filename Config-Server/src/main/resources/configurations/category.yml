@@ -1,5 +1,5 @@
 server:
-  port: 8085
+  port: ${server.port}
 
 spring:
   jpa:
@@ -12,14 +12,14 @@ spring:
 
   # Local Datasource
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/ecms_local
-    username: 
-    password: 
+    url: ${database-url}
+    username: ${database-username}
+    password: ${database-password}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Docker Datasource
 #  datasource:
-#    url: jdbc:mysql://mysql:3306/ecommerce
-#    username: ecms
-#    password: ecms
+#    url: ${database-url}
+#    username: ${database-username}
+#    password: ${database-password}
 #    driver-class-name: com.mysql.cj.jdbc.Driver

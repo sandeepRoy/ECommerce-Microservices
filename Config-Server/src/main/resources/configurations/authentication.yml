@@ -1,5 +1,5 @@
 server:
-  port: 8084
+  port: ${server.port}
 
 spring:
   jpa:
@@ -12,36 +12,35 @@ spring:
 
   # Local Datasource
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/ecms_local
-    username: root
-    password: Online#9900
+    url: ${database-url}
+    username: ${database-username}
+    password: ${database-password}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Docker Datasource
 #  datasource:
-#    url: jdbc:mysql://mysql:3306/ecommerce
-#    username: ecms
-#    password: ecms
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-
+#  url: ${database-url}
+#  username: ${database-username}
+#  password: ${database-password}
+#  driver-class-name: com.mysql.cj.jdbc.Driver
 
   security:
     oauth2:
       client:
         registration:
           github:
-            client-id: 
-            client-secret: 
+            client-id: ${github-client_id}
+            client-secret:  ${github-client-secret}
           google:
-            client-id: 
-            client-secret: 
+            client-id: ${google-client-id}
+            client-secret: ${google-client-secret}
 
 jwt:
-  access-secret: 
-  refresh-secret: 
-  access-expiry: 600000     # 10 minutes after access expiry should be able to generate new access using not expired refresh
-  refresh-expiry: 1200000   # 20 minutes after refresh expiry login required if password not expired to get the new access & refresh
+  access-secret: ${jwt-access-secret}
+  refresh-secret: ${jwt-refresh-secret}
+  access-expiry: ${access-token-expiry}
+  refresh-expiry: ${refresh-token-expiry}
 
 user:
-  password-expiry: 1800000  # 30 minutes after password expiry no access or refresh re issue, have to change the password
+  password-expiry: ${password-expiry}
 
