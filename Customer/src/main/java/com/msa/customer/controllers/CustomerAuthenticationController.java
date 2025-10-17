@@ -64,13 +64,14 @@ public class CustomerAuthenticationController {
         // need a check for mobile : email if present
         // need to send OTP to email
         // need a service method for OTP validation, user & customer creation
-        OTPResponse otpResponse = customerService.generateOTP(mobile);
+        OTPResponse otpResponse = mobile == null ? customerService.generateOTPToEmail(emailId) : customerService.generateOTPToMobile(mobile);
         return new ResponseEntity<>(otpResponse, HttpStatus.OK);
     }
 
    @GetMapping("/verify-otp")
    public ResponseEntity<AuthResponse> get(@RequestParam String otp) {
-        AuthResponse authResponse = customerService.verifyOTP(otp);
+
+        AuthResponse authResponse = customerService.verifyOTPSentToMobile(otp);
         if (authResponse.getAccess_token() != "INVALID OTP") {
             return new ResponseEntity<>(authResponse, HttpStatus.OK);
         } else {

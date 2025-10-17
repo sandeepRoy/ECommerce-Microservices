@@ -11,13 +11,8 @@ import com.msa.customer.repositories.*;
 import com.msa.customer.responses.*;
 
 
-import feign.RequestInterceptor;
-import feign.RequestTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Example;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -28,10 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 
-import io.jsonwebtoken.Jwts;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
@@ -840,7 +832,7 @@ public class CustomerService {
         return pdfGeneratorClient.getPDF(invoice).getBody();
     }
 
-    public OTPResponse generateOTP(String mobile) {
+    public OTPResponse generateOTPToMobile(String mobile) {
         String otp = String.valueOf(ThreadLocalRandom.current().nextInt(111111, 999999));
         System.out.println("OTP: " + otp);
         cachingClient.putOtpAndContactMediumInCache(otp, mobile);
@@ -855,7 +847,24 @@ public class CustomerService {
         return OTPResponse.builder().otp(otp).build();
     }
 
-    public AuthResponse verifyOTP(String otp) {
+    public OTPResponse generateOTPToEmail(String email) {
+        String otp = String.valueOf(ThreadLocalRandom.current().nextInt(111111, 999999));
+        cachingClient.putOtpAndContactMediumInCache(otp, email);
+
+        emailingClient.sendOTP(email, otp);
+        return OTPResponse.builder().otp("Check You given email inbox for OTP, Once you recieved it verify to login!").build();
+    }
+
+    public AuthResponse verifyOTPSentToEmail(String otp) {
+        String contactMediumByOTP = cachingClient.getContactMediumByOTP(otp);
+        // otp found
+        // email exists
+        // email doesn't exists
+        return AuthResponse.builder().access_token("WAIT").refresh_token("WAIT").build();
+    }
+
+    // combine email & mobile OTP verification
+    public AuthResponse verifyOTPSentToMobile(String otp) {
         String mobileByOTPResponse = cachingClient.getContactMediumByOTP(otp);
         log.info("mobileByOTPResponse: " + mobileByOTPResponse);
         if(mobileByOTPResponse.equals("Not Found")) {
