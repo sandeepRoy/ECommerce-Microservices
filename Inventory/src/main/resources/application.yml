@@ -1,8 +1,0 @@
-spring:
-  application:
-    name: "inventory"
-  config:
-    # Docker Config-Server
-    #    import: optional:configserver:http://config-server:8080
-    # Local Config-Server
-    import: optional:configserver:http://localhost:8080/

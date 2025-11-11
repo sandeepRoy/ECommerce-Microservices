@@ -1,6 +1,10 @@
 package com.msa.category.controllers;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import com.msa.category.dtos.CategoryDto;
+import com.msa.category.dtos.RemoveCategoryDto;
+import com.msa.category.dtos.UpdateCategoryDto;
 import com.msa.category.entities.Category;
 import com.msa.category.responses.AllCategoryProduct;
 import com.msa.category.responses.CategoryWithProductsResponse;
@@ -15,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin/category")
+@RequestMapping("/category")
 @Slf4j
 public class CategoryController {
     @Autowired
@@ -50,5 +54,17 @@ public class CategoryController {
     public ResponseEntity<List<AllCategoryProduct>> getAllCategoryWithProducts() {
         List<AllCategoryProduct> allCategoryWithProducts = categoryService.getAllCategoryWithProducts();
         return new ResponseEntity<>(allCategoryWithProducts, HttpStatus.OK);
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<Category> updateCategory(@RequestBody UpdateCategoryDto updateCategoryDto) {
+        Category categoryNameUpdated = categoryService.updateCategory(updateCategoryDto);
+        return new ResponseEntity<>(categoryNameUpdated, HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/remove")
+    public ResponseEntity<List<Category>> removeCategories(@RequestBody RemoveCategoryDto removeCategoryDto) {
+        List<Category> categories = categoryService.removeCategory(removeCategoryDto);
+        return new ResponseEntity<>(categories, HttpStatus.CREATED);
     }
 }

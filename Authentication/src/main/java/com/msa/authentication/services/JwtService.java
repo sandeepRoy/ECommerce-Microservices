@@ -169,9 +169,7 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
-
-
-
+    
     public boolean isRefreshTokenExpired(String token) {
         return extractRefreshClaim(token, Claims::getExpiration).before(new Date());
     }
