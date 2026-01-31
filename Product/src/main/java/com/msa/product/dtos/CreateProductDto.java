@@ -4,17 +4,25 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class CreateProductDto {
+
+    private Integer category_id;
+
     private String product_name;
 
     private String product_manufacturer;
 
-    private Double product_price;
+    private String product_description;
 
-    private Integer product_inStock;
+    // replace with ENUN.IN_STOCK/OUT_OF_STOCK/DISCONTINUTED/COMMING_SOON later
+    private String product_status;
 
-    private Integer category_id;
+    private LocalDate product_listed_on;
+
+    private LocalDate product_updated_on;
 }

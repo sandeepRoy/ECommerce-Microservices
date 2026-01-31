@@ -18,9 +18,9 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
-    @GetMapping("/all")
-    public ResponseEntity<List<Product>> getAllProducts() {
-        List<Product> allProducts = productService.getAllProducts();
+    @PostMapping("/all")
+    public ResponseEntity<List<Product>> getAllProducts(@RequestBody List<Integer> productIds) {
+        List<Product> allProducts = productService.getAllProducts(productIds);
         return new ResponseEntity<>(allProducts, HttpStatus.OK);
     }
 

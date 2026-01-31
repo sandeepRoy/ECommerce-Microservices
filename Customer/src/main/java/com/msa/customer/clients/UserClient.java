@@ -9,7 +9,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@FeignClient(name = "user", url = "http://localhost:8084/user")
+@FeignClient(name = "user", url = "http://localhost:8086/user")
 public interface UserClient {
 
     @PostMapping("/validate")

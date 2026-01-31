@@ -48,6 +48,7 @@ public class UserController {
         userProfileResponse.setEmail(user.getEmail());
         userProfileResponse.setFirstName(user.getFirstname());
         userProfileResponse.setLastName(user.getLastname());
+        userProfileResponse.setRole(user.getRole().name());
 
         return new ResponseEntity<>(userProfileResponse, HttpStatus.OK);
     }
@@ -60,6 +61,7 @@ public class UserController {
         userProfileResponse.setEmail(user.getUsername());
         userProfileResponse.setFirstName(user.getFirstname());
         userProfileResponse.setLastName(user.getLastname());
+        userProfileResponse.setRole(user.getRole().name());
 
         return new ResponseEntity<>(userProfileResponse, HttpStatus.CREATED);
     }
@@ -72,6 +74,7 @@ public class UserController {
         userProfileResponse.setEmail(user.getUsername());
         userProfileResponse.setFirstName(user.getFirstname());
         userProfileResponse.setLastName(user.getLastname());
+        userProfileResponse.setRole(user.getRole().name());
 
         return new ResponseEntity<>(userProfileResponse, HttpStatus.CREATED);
     }

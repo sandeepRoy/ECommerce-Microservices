@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.List;
 
-@FeignClient(name = "category", url = "http://localhost:8085/admin/category")
+@FeignClient(name = "category", url = "http://localhost:8084/category")
 public interface CategoryWithProductsClient {
     @GetMapping("all/categoryWithProducts")
     public List<Root> getAllCategoryWithProducts();

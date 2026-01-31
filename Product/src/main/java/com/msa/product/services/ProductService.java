@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -17,8 +18,12 @@ public class ProductService {
     private ProductRepository productRepository;
 
     // GET - List<Product>
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
+    public List<Product> getAllProducts(List<Integer> productIds) {
+        List<Product> allFoundProducts = new ArrayList<>();
+        for(Integer productId : productIds) {
+            allFoundProducts.add(productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product Not Found!")));
+        }
+        return allFoundProducts;
     }
 
     // GET - Product by product_id
@@ -44,8 +49,10 @@ public class ProductService {
         Product newProduct = Product.builder()
                 .product_name(createProductDto.getProduct_name())
                 .product_manufacturer(createProductDto.getProduct_manufacturer())
-                .product_price(createProductDto.getProduct_price())
-                .product_inStock(createProductDto.getProduct_inStock())
+                .product_description(createProductDto.getProduct_description())
+                .product_status(createProductDto.getProduct_status())
+                .product_listed_on(createProductDto.getProduct_listed_on())
+                .product_updated_on(createProductDto.getProduct_updated_on())
                 .category_id(createProductDto.getCategory_id())
                 .build();
 

@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Example;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -18,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -47,13 +49,17 @@ public class AuthenticationService {
     public AuthenticationManager authenticationManager;
 
     public AuthResponse register(RegisterRequest registerRequest) {
+        Optional<User> optionalUser = userRepository.findOne(Example.of(User.builder().email(registerRequest.getEmail()).build()));
+
+        if(optionalUser.isPresent()) { return AuthResponse.builder().message("USER ALREADY EXISTS : EITHER LOGIN OR RESET THE PASSWORD").build(); }
+
         User user = User
                 .builder()
                 .firstname(registerRequest.getFirstname())
                 .lastname(registerRequest.getLastname())
                 .email(registerRequest.getEmail())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
-                .role(Role.USER)
+                .role(registerRequest.getRole())
                 .build();
 
         user.setPasswordChangedAt(LocalDateTime.now());

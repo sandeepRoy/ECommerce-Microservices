@@ -1,5 +1,12 @@
 server:
-  port: 8088
+  port: ${server.port}
+
+logging:
+  level:
+    root: INFO # Default logging level for all loggers
+    org.apache.kafka: WARN # Set the log level for all Apache Kafka client libraries to WARN
+    org.springframework.kafka: DEBUG # Set the log level for Spring Kafka components to DEBUG
+    com.ecms.*: DEBUG # Set the log level for your application's specific Kafka package
 
 spring:
   jpa:
@@ -24,22 +31,21 @@ spring:
 #    password: ${database-password}
 #    driver-class-name: com.mysql.cj.jdbc.Driver
 
-
   kafka:
     producer:
       bootstrap-servers: ${kafka-producer-bootstrap-servers}
       group_id: ${kafka-producer-group-id}
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      key-serializer: ${kafka-producer-key-serializer}
+      value-serializer: ${kafka-producer-value-serializer}
       properties:
         spring.json.trusted.packages: '*'
 
     consumer:
       bootstrap-servers: ${kafka-consumer-bootstrap-server}
       group_id: ${kafka-consumer-group-id}
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: ${kafka-consumer-auto-offset-reset}
+      key-deserializer: ${kafka-consumer-key-deserializer}
+      value-deserializer: ${kafka-consumer-value-deserializer}
       properties:
         spring.json.trusted.packages: '*'
 
